@@ -5,20 +5,18 @@
 (defn readAll
   [ch]
   (let [step (fn step [acc] 
-               (let [ l (async/<!! ch)] 
+               (let [ [l ch] (async/alts!! [ch (async/timeout 100)]) ] 
                 (if (= nil l)
                   acc
                   (step (conj acc l)))))]
-    (step [nil])))
+    (step [])))
 
 (defn minus
   [all toDelete]
-  (println toDelete)
   (clojure.set/difference (set all) (set toDelete)))
 
 (defn add
   [all toAdd]
-  (println toAdd)
   (clojure.set/union (set all) (set toAdd)))
 
 (defn updateFrameworks

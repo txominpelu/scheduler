@@ -10,6 +10,4 @@
           initialFrameworks (list "framework1" "framework2" "framework3")]
       (thread (>!! registerCh "framework4"))
       (thread (>!! deRegisterCh "framework1"))
-      (close! registerCh)
-      (close! deRegisterCh)
-      (is (= (updateFrameworks initialFrameworks registerCh deRegisterCh)  1)))))
+      (is (= (updateFrameworks initialFrameworks registerCh deRegisterCh)  #{"framework2" "framework3" "framework4"})))))
