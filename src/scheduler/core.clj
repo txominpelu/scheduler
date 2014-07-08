@@ -1,33 +1,29 @@
 (ns scheduler.core
-  (:require [clojure.core.async :as async])
+  (:require [clojure.core.async :as async]
+            [scheduler.channel :as channel]
+            [scheduler.framework :as framework])
   (:gen-class))
 
-(defn readAll
-  [ch]
-  (let [step (fn step [acc] 
-               (let [ [l ch] (async/alts!! [ch (async/timeout 100)]) ] 
-                (if (= nil l)
-                  acc
-                  (step (conj acc l)))))]
-    (step [])))
+
+(defn add
+  [resource all]
+  (clojure.set/union (set all) resources))
 
 (defn minus
   [all toDelete]
   (clojure.set/difference (set all) (set toDelete)))
 
-(defn add
-  [all toAdd]
-  (clojure.set/union (set all) (set toAdd)))
-
-(defn updateFrameworks
-  [frameworks registerCh deRegisterCh]
-  (let [register (readAll registerCh)
-        deRegister (readAll deRegisterCh)]
-    (minus (add frameworks register) deRegister)))
+(defn updateResources
+  [resources finishedTasksCh]
+  (let [finished (channel/readAll finishedTasksCh)]
+    (add resources finished)))
 
 (defn offerResources
   [registerCh finishedCh frameworks resources]
-  (updateFrameworks frameworks registerCh))
+  (let [frameworks (framework/updateFrameworks frameworks registerCh)
+        resources (updateResources resources finishedCh)]
+    (for [f frameworks] 
+      (offer resources f))))
 
 ;; Mesos Master
   ;; init():
@@ -35,8 +31,7 @@
   ;;   frameworks = []
   ;;
   ;; loop():
-  ;;   frameworks += registeredFrameworks()
-  ;;   frameworks -= deregisteredFrameworks()
+  ;;   frameworks += updateFrameworks()
   ;;   resources += finishedTasksOrErrors() //wait for first
   ;;   for fr in frameworks: // ensure fairness when traversing the frameworks even at the end
   ;;                         // next time I'll traverse frameworks I will start by the second

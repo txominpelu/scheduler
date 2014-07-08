@@ -1,7 +1,8 @@
-(ns scheduler.core-test
+(ns scheduler.framework-test
   (:require [clojure.test :refer :all]
             [clojure.core.async :as async :refer :all]
-            [scheduler.core :refer :all]))
+            [scheduler.framework :refer :all]
+     ))
 
 (deftest updateFramework-test
   (testing "Test that the list of frameworks is updated"
