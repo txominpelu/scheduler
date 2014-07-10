@@ -18,6 +18,23 @@
   (let [finished (channel/readAll finishedTasksCh)]
     (add resources finished)))
 
+;; resp => {:accepted true :task {:cmd ""}}
+(defn
+
+(defn offer
+  [frameworks resources]
+  (let [step 
+        (fn step [frameworks]
+          (let [resp (makeOffer (first frameworks))
+                left (rest frameworks)]
+            (if (isAccepted? resp)
+              (launchTask resp)
+              (if (nil? left)
+                nil
+                (step left)))))]
+    (step frameworks)))
+              
+
 (defn offerResources
   [registerCh finishedCh frameworks resources]
   (let [frameworks (framework/updateFrameworks frameworks registerCh)
