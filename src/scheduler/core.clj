@@ -6,7 +6,7 @@
 
 
 (defn add
-  [resource all]
+  [resources all]
   (clojure.set/union (set all) resources))
 
 (defn minus
@@ -19,28 +19,30 @@
     (add resources finished)))
 
 ;; resp => {:accepted true :task {:cmd ""}}
-(defn
 
 (defn offer
-  [frameworks resources]
-  (let [step 
-        (fn step [frameworks]
-          (let [resp (makeOffer (first frameworks))
-                left (rest frameworks)]
-            (if (isAccepted? resp)
-              (launchTask resp)
-              (if (nil? left)
-                nil
-                (step left)))))]
-    (step frameworks)))
+  []
+  (println "offer"))
+;;  [frameworks resources]
+;;  (let [step 
+;;        (fn step [frameworks]
+;;          (let [resp (makeOffer (first frameworks))
+;;                left (rest frameworks)]
+;;            (if (isAccepted? resp)
+;;              (launchTask resp)
+;;              (if (nil? left)
+;;                nil
+;;                (step left)))))]
+;;    (step frameworks)))
               
-
 (defn offerResources
   [registerCh finishedCh frameworks resources]
-  (let [frameworks (framework/updateFrameworks frameworks registerCh)
+  (let [frameworks (framework/updateFrameworks frameworks registerCh (async/chan))
         resources (updateResources resources finishedCh)]
-    (for [f frameworks] 
-      (offer resources f))))
+    (doall (for [f frameworks] 
+      (framework/offeredResources resources f))
+      )
+    {:resources resources :frameworks frameworks}))
 
 ;; Mesos Master
   ;; init():
