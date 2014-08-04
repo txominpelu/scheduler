@@ -1,5 +1,6 @@
 (ns scheduler.cluster
-  (:require [clojure.core.async :as async]))
+  (:require [clojure.core.async :as async]
+     ))
 
 ;; Resources
 
@@ -9,9 +10,16 @@
 
 ;; Cluster
 
+
+
+
 (defn getResources
   [cluster]
   (:resources cluster))
+
+(defn getClusterCpus
+  [cluster]
+  (getCpus (getResources cluster)))
 
 (defn getFrameworks
   [cluster]
@@ -33,7 +41,24 @@
   [cluster framework] 
   (async/thread (async/>!! (getRegisterCh cluster) framework)))
 
+(defn finishFramework
+  [cluster framework] 
+  (async/thread (async/>!! (getFinishedCh cluster) framework)))
+
+(defn withResources
+  [cluster resources]
+  (assoc cluster :resources resources))
+
+(defn withFrameworks
+  [cluster frameworks]
+  (assoc cluster :frameworks frameworks))
+
 (defn runIter
   [cluster]
   ((getIter cluster) cluster))
 
+;; Tasks
+
+(defn runTask
+  [task]
+ (task))

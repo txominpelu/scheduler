@@ -1,7 +1,9 @@
 (ns scheduler.core
   (:require [clojure.core.async :as async]
             [scheduler.channel :as channel]
-            [scheduler.framework :as framework])
+            [scheduler.cluster :as cluster]
+            [scheduler.framework :as framework]
+            [clojure.core.match :refer [match]])
   (:gen-class))
 
 
@@ -20,29 +22,48 @@
 
 ;; resp => {:accepted true :task {:cmd ""}}
 
-(defn offer
-  []
-  (println "offer"))
-;;  [frameworks resources]
-;;  (let [step 
-;;        (fn step [frameworks]
-;;          (let [resp (makeOffer (first frameworks))
-;;                left (rest frameworks)]
-;;            (if (isAccepted? resp)
-;;              (launchTask resp)
-;;              (if (nil? left)
-;;                nil
-;;                (step left)))))]
-;;    (step frameworks)))
-              
+(defn offerToAll
+  [frameworks resources cluster]
+  (let [frameworks (seq frameworks)
+        step (fn step [res frameworks newFrameworks]
+     (if (not (empty? frameworks))
+            (let [fr (first frameworks)
+                  {tasks :tasks newFr :framework} (framework/offeredResources res fr)
+                  newResources res]
+                  ;; FIXME: Treat resources as monoids
+                  ;;newResources (- res (resourcesUsedBy tasks))]
+                  (step newResources (rest frameworks) (conj newFrameworks newFr )))
+            (cluster/withResources (cluster/withFrameworks cluster (set newFrameworks)) res)))]
+    (step resources frameworks [])))
+
+
+
+  ;; defn step(resources, frameworks, newFrameworks)
+  ;;   match frameworks
+  ;;     case (fr, tail) =>
+  ;;       {tasks, newFr} = offeredResources resources fr
+  ;;       newResources = resources - resourcesUsedBy(tasks) 
+  ;;       step(newResources, tail, (conj newFr newFrameWorks))
+  ;;     case Nil
+  ;;       (cluster/withResources (cluster/withFrameworks cluster frameworks) {:cpus finalResources})))
+  ;;       
+  ;;   
+
+
 (defn offerResources
-  [registerCh finishedCh frameworks resources]
-  (let [frameworks (framework/updateFrameworks frameworks registerCh (async/chan))
-        resources (updateResources resources finishedCh)]
-    (doall (for [f frameworks] 
-      (framework/offeredResources resources f))
-      )
-    {:resources resources :frameworks frameworks}))
+  [cluster]
+  (let [
+        registerCh (cluster/getRegisterCh cluster) 
+        finishedCh (cluster/getFinishedCh cluster) 
+        frameworks (cluster/getFrameworks cluster)
+        resources  (cluster/getResources cluster)
+        frameworks (framework/updateFrameworks frameworks registerCh (async/chan) finishedCh)
+        resources (updateResources resources finishedCh)
+        ;;finalResources (reduce (fn [resources f] 
+                                 ;;(framework/offeredResources resources f)) resources frameworks)
+        ]
+    ;;(cluster/withResources (cluster/withFrameworks cluster frameworks) {:cpus finalResources})))
+    (offerToAll frameworks resources cluster)))
 
 ;; Mesos Master
   ;; init():

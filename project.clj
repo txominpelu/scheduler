@@ -6,7 +6,11 @@
   :dependencies [ 
                   [org.clojure/clojure "1.6.0"]
                   [org.clojure/core.async "0.1.303.0-886421-alpha"]
+                  [org.clojure/core.typed "0.2.63"]
+                  [org.clojure/core.match "0.2.1"]
                  ]
   :main ^:skip-aot scheduler.core
   :target-path "target/%s"
+  :plugins [[lein-typed "0.3.5"]]
+  :core.typed {:check [scheduler.channel scheduler.framework scheduler.core scheduler.cluster]}
   :profiles {:uberjar {:aot :all}})
