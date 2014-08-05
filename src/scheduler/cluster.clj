@@ -2,21 +2,12 @@
   (:require [clojure.core.async :as async]
             [clojure.core.typed.async :as ta]
             [clojure.core.typed :as t]
+            [scheduler.types :as ts]
      ))
 
-(t/defalias Resources (t/HMap :mandatory {:cpus t/AnyInteger}))
-(t/defalias Task [ -> t/Any])
-(t/defalias Framework (t/HMap :mandatory {:tasks (t/Seqable Task) :name String}))
-(t/defalias Cluster (t/HMap :mandatory {
-                                      :resources Resources
-                                      :frameworks (t/Seqable Framework)
-                                      :registerCh (ta/Chan t/Any)
-                                      :finishedCh (ta/Chan t/Any)
-                                      :iter [ Cluster -> t/Any]
-                                      }))
 ;; Resources
 
-(t/ann getCpus [Resources -> t/AnyInteger])
+(t/ann getCpus [ts/Resources -> t/AnyInteger])
 (defn getCpus
   [resources]
   (:cpus resources))
@@ -26,74 +17,74 @@
 
 
 
-(t/ann getResources [Cluster -> Resources])
+(t/ann getResources [ts/Cluster -> ts/Resources])
 (defn getResources
   [cluster]
   (:resources cluster))
 
-(t/ann getClusterCpus [Cluster -> t/AnyInteger])
+(t/ann getClusterCpus [ts/Cluster -> t/AnyInteger])
 (defn getClusterCpus
   [cluster]
   (getCpus (getResources cluster)))
 
-(t/ann getFrameworks [Cluster -> (t/Seqable Framework)])
+(t/ann getFrameworks [ts/Cluster -> (t/Seqable ts/Framework)])
 (defn getFrameworks
   [cluster]
   (:frameworks cluster))
 
-(t/ann getRegisterCh [Cluster -> (ta/Chan t/Any)])
+(t/ann getRegisterCh [ts/Cluster -> (ta/Chan t/Any)])
 (defn getRegisterCh
   [cluster]
   (:registerCh cluster))
 
-(t/ann getFinishedCh [Cluster -> (ta/Chan t/Any)])
+(t/ann getFinishedCh [ts/Cluster -> (ta/Chan t/Any)])
 (defn getFinishedCh
   [cluster]
   (:finishedCh cluster))
 
-(t/ann getIter [Cluster -> [Cluster -> t/Any]])
+(t/ann getIter [ts/Cluster -> [ts/Cluster -> t/Any]])
 (defn getIter
   [cluster]
   (:iter cluster))
 
-(t/ann registerFramework [Cluster Framework -> t/Any])
+(t/ann registerFramework [ts/Cluster ts/Framework -> t/Any])
 (defn registerFramework
   [cluster framework] 
   (async/thread (async/>!! (getRegisterCh cluster) framework)))
 
-(t/ann finishFramework [Cluster Framework -> t/Any])
+(t/ann finishFramework [ts/Cluster ts/Framework -> t/Any])
 (defn finishFramework
   [cluster framework] 
   (async/thread (async/>!! (getFinishedCh cluster) framework)))
 
-(t/ann withResources [Cluster Resources -> Cluster])
+(t/ann withResources [ts/Cluster ts/Resources -> ts/Cluster])
 (defn withResources
   [cluster resources]
   (assoc cluster :resources resources))
 
-(t/ann withFrameworks [Cluster (t/Seqable Framework) -> Cluster])
+(t/ann withFrameworks [ts/Cluster (t/Seqable ts/Framework) -> ts/Cluster])
 (defn withFrameworks
   [cluster frameworks]
   (assoc cluster :frameworks frameworks))
 
-(t/ann runIter [Cluster -> t/Any])
+(t/ann runIter [ts/Cluster -> t/Any])
 (defn runIter
   [cluster]
   ((getIter cluster) cluster))
 
 ;; Tasks
 
-(t/ann runTask [[ -> t/Any] -> t/Any])
+(t/ann runTask [ts/Task -> t/Any])
 (defn runTask
   [task]
  (task))
 
-(t/ann plusResources [Resources Resources -> Resources])
+(t/ann plusResources [ts/Resources ts/Resources -> ts/Resources])
 (defn plusResources
   [res1 res2]
   {:cpus (+ (getCpus res1) (getCpus res2))})
 
-(t/ann minusResources [Resources Resources -> Resources])
+(t/ann minusResources [ts/Resources ts/Resources -> ts/Resources])
 (defn minusResources
   [res1 res2]
   {:cpus (- (getCpus res1) (getCpus res2))})

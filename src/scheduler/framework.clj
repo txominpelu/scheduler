@@ -4,6 +4,7 @@
             [scheduler.cluster :as cluster]
             [clojure.core.typed :as t]
             [clojure.core.typed.async :as ta]
+            [scheduler.types :as ts]
      ))
 
 (t/ann minus (t/All [x] [(t/Seqable x) (t/Seqable x) -> (t/Set x)]))
@@ -24,12 +25,12 @@
     (minus (add frameworks register) deRegister)))
 
 
-(t/ann withTasks [cluster/Framework (t/Seqable cluster/Task) -> cluster/Framework])
+(t/ann withTasks [ts/Framework (t/Seqable ts/Task) -> ts/Framework])
 (defn withTasks
   [framework tasks]
  (assoc framework :tasks tasks))
 
-(t/ann getTasks [cluster/Framework -> (t/Seqable cluster/Task)])
+(t/ann getTasks [ts/Framework -> (t/Seqable ts/Task)])
 (defn getTasks
   [framework]
  (:tasks framework))
@@ -39,7 +40,7 @@
   [name tasks]
   {:name name :tasks tasks})
 
-(t/ann offeredResources [cluster/Resources cluster/Framework -> (t/HMap :mandatory {:tasks (t/ASeq cluster/Task), :framework cluster/Framework} )])
+(t/ann offeredResources [ts/Resources ts/Framework -> (t/HMap :mandatory {:tasks (t/ASeq ts/Task), :framework ts/Framework} )])
 (defn offeredResources
   "offers resources to a framework and returns the resources that are left"
   [resources framework]
@@ -47,8 +48,8 @@
         tasks (getTasks framework)
         ;; FIXME: One task is one CPU
         tasksToRun (int (min (count tasks) cpus))
-        tk (t/inst take cluster/Task) 
-        sv (t/inst subvec cluster/Task)
+        tk (t/inst take ts/Task) 
+        sv (t/inst subvec ts/Task)
        ]
     {:tasks (tk tasksToRun tasks) :framework (withTasks framework (sv (vec tasks) tasksToRun)) }))
 
