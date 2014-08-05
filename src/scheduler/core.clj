@@ -18,9 +18,14 @@
 (defn updateResources
   [resources finishedTasksCh]
   (let [finished (channel/readAll finishedTasksCh)]
-    (add resources finished)))
+    (cluster/plusResources resources {:cpus (count finished)})))
 
 ;; resp => {:accepted true :task {:cmd ""}}
+
+(defn resourcesUsedBy
+  [tasks]
+  {:cpus (count tasks)})
+
 
 (defn offerToAll
   [frameworks resources cluster]
@@ -29,9 +34,9 @@
      (if (not (empty? frameworks))
             (let [fr (first frameworks)
                   {tasks :tasks newFr :framework} (framework/offeredResources res fr)
-                  newResources res]
                   ;; FIXME: Treat resources as monoids
-                  ;;newResources (- res (resourcesUsedBy tasks))]
+                  newResources (cluster/minusResources res (resourcesUsedBy tasks))]
+                  (doall (for [t tasks] (t)))
                   (step newResources (rest frameworks) (conj newFrameworks newFr )))
             (cluster/withResources (cluster/withFrameworks cluster (set newFrameworks)) res)))]
     (step resources frameworks [])))
@@ -57,7 +62,7 @@
         finishedCh (cluster/getFinishedCh cluster) 
         frameworks (cluster/getFrameworks cluster)
         resources  (cluster/getResources cluster)
-        frameworks (framework/updateFrameworks frameworks registerCh (async/chan) finishedCh)
+        frameworks (framework/updateFrameworks frameworks registerCh (async/chan))
         resources (updateResources resources finishedCh)
         ;;finalResources (reduce (fn [resources f] 
                                  ;;(framework/offeredResources resources f)) resources frameworks)

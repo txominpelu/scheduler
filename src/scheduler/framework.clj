@@ -16,11 +16,10 @@
   (clojure.set/union (set all) (set toAdd)))
 
 (defn updateFrameworks
-  [frameworks registerCh deRegisterCh finishedCh]
+  [frameworks registerCh deRegisterCh]
   (let [register (channel/readAll registerCh)
-        finished (channel/readAll finishedCh)
         deRegister (channel/readAll deRegisterCh)]
-    (minus (minus (add frameworks register) deRegister) finished)))
+    (minus (add frameworks register) deRegister)))
 
 
 (defn withTasks

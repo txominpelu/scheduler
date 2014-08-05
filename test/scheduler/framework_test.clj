@@ -8,8 +8,7 @@
   (testing "Test that the list of frameworks is updated"
     (let [registerCh (async/chan)
           deRegisterCh (async/chan)
-          finishedCh (async/chan)
           initialFrameworks (list "framework1" "framework2" "framework3")]
       (async/thread (async/>!! registerCh "framework4"))
       (async/thread (async/>!! deRegisterCh "framework1"))
-      (is (= (updateFrameworks initialFrameworks registerCh deRegisterCh finishedCh)  #{"framework2" "framework3" "framework4"})))))
+      (is (= (updateFrameworks initialFrameworks registerCh deRegisterCh)  #{"framework2" "framework3" "framework4"})))))

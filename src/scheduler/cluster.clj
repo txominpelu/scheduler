@@ -62,3 +62,11 @@
 (defn runTask
   [task]
  (task))
+
+(defn plusResources
+  [res1 res2]
+  {:cpus (+ (getCpus res1) (getCpus res2))})
+
+(defn minusResources
+  [res1 res2]
+  {:cpus (- (getCpus res1) (getCpus res2))})
