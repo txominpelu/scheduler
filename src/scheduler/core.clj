@@ -2,8 +2,7 @@
   (:require [clojure.core.async :as async]
             [scheduler.channel :as channel]
             [scheduler.cluster :as cluster]
-            [scheduler.framework :as framework]
-            [clojure.core.match :refer [match]])
+            [scheduler.framework :as framework])
   (:gen-class))
 
 
