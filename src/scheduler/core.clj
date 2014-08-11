@@ -15,9 +15,8 @@
   (clojure.set/difference (set all) (set toDelete)))
 
 (defn updateResources
-  [resources finishedTasksCh]
-  (let [finished (channel/readAll finishedTasksCh)]
-    (cluster/plusResources resources {:cpus (count finished)})))
+  [resources finished]
+    (cluster/plusResources resources {:cpus (count finished)}))
 
 ;; resp => {:accepted true :task {:cmd ""}}
 
@@ -41,17 +40,13 @@
     (step resources frameworks [])))
 
 
-
-  ;; defn step(resources, frameworks, newFrameworks)
-  ;;   match frameworks
-  ;;     case (fr, tail) =>
-  ;;       {tasks, newFr} = offeredResources resources fr
-  ;;       newResources = resources - resourcesUsedBy(tasks) 
-  ;;       step(newResources, tail, (conj newFr newFrameWorks))
-  ;;     case Nil
-  ;;       (cluster/withResources (cluster/withFrameworks cluster frameworks) {:cpus finalResources})))
-  ;;       
-  ;;   
+(defn getEvents
+  [finishedCh registerCh deregisterCh]
+  (let [withKey (fn [channel key] (async/map (fn [x] [key x]) [channel]))
+        finishedCh (withKey finishedCh :finished)
+        registerCh (withKey registerCh :register)
+        deregisterCh (withKey deregisterCh :deregister)]
+    (channel/readAll [finishedCh registerCh deregisterCh])))
 
 
 (defn offerResources
@@ -61,12 +56,17 @@
         finishedCh (cluster/getFinishedCh cluster) 
         frameworks (cluster/getFrameworks cluster)
         resources  (cluster/getResources cluster)
-        frameworks (framework/updateFrameworks frameworks registerCh (async/chan))
-        resources (updateResources resources finishedCh)
-        ;;finalResources (reduce (fn [resources f] 
-                                 ;;(framework/offeredResources resources f)) resources frameworks)
+        events    (getEvents finishedCh registerCh (async/chan))
+        getWithKey (fn [key] (map second (filter (fn [x] (= key (first x))) events)))
+        resources (updateResources resources (getWithKey :finished))
+        frameworks (framework/updateFrameworks frameworks (getWithKey :register) (getWithKey :deregister))
         ]
-    ;;(cluster/withResources (cluster/withFrameworks cluster frameworks) {:cpus finalResources})))
+    (println "events")
+    (println events)
+    (println "finished")
+    (println (getWithKey :finished))
+    (println "register")
+    (println (getWithKey :register))
     (offerToAll frameworks resources cluster)))
 
 ;; Mesos Master

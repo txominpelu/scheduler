@@ -35,9 +35,9 @@
           framework (framework/createFramework "fr1" [task])]
       (cluster/registerFramework cluster framework)
       (Thread/sleep 1000)
-    (let [frameworks (framework/updateFrameworks (cluster/getFrameworks cluster) (cluster/getRegisterCh cluster) (async/chan))]
-      (is (= [[task]] (map framework/getTasks frameworks)))
-      (is (= #{framework} frameworks ))))))
+    (let [frameworks (cluster/getFrameworks (cluster/runIter cluster))]
+      (is (= [[]] (map framework/getTasks frameworks)))
+      (is (= #{(framework/withTasks framework [])} frameworks ))))))
 
 
 
@@ -54,9 +54,9 @@
       (let [newCluster (cluster/runIter cluster)]
        (is (= (cluster/getFrameworks newCluster) #{(framework/withTasks framework [])} ))
        (is (= (cluster/getClusterCpus newCluster) (- (cluster/getClusterCpus cluster) 1)))
-           (let [newCluster (cluster/runIter newCluster)]
-             (is (= (cluster/getFrameworks newCluster) #{(framework/withTasks framework [])} ))
-             (is (= (cluster/getClusterCpus newCluster) (cluster/getClusterCpus cluster))))
+           ;;(let [newCluster (cluster/runIter newCluster)]
+            ;; (is (= (cluster/getFrameworks newCluster) #{(framework/withTasks framework [])} ))
+            ;; (is (= (cluster/getClusterCpus newCluster) (cluster/getClusterCpus cluster))))
            ))))
 
 ;; create a scheduler with one job with one task

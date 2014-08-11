@@ -17,12 +17,10 @@
   [all toAdd]
   (clojure.set/union (set all) (set toAdd)))
 
-(t/ann updateFrameworks (t/All [x] [(t/Seqable x) (ta/Chan x) (ta/Chan x) -> (t/Seqable x)]))
+(t/ann updateFrameworks (t/All [x] [(t/Set x) (t/Seqable x) (t/Seqable x) -> (t/Seqable x)]))
 (defn updateFrameworks
-  [frameworks registerCh deRegisterCh]
-  (let [register (channel/readAll registerCh)
-        deRegister (channel/readAll deRegisterCh)]
-    (minus (add frameworks register) deRegister)))
+  [frameworks register deRegister]
+    (minus (add frameworks register) deRegister))
 
 
 (t/ann withTasks [ts/Framework (t/Seqable ts/Task) -> ts/Framework])
