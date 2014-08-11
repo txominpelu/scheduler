@@ -12,5 +12,5 @@
                                       :frameworks (t/Seqable Framework)
                                       :registerCh (ta/Chan t/Any)
                                       :finishedCh (ta/Chan t/Any)
-                                      :iter [ Cluster -> t/Any]
+                                      :iter [ t/Any -> t/Any]
                                       }))

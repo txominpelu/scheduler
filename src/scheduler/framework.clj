@@ -35,7 +35,7 @@
   [framework]
  (:tasks framework))
 
-(t/ann createFramework [String (t/Seqable Any) -> (t/HMap :mandatory {:name String, :tasks (t/Seqable Any)})])
+(t/ann createFramework [String (t/Seqable t/Any) -> (t/HMap :mandatory {:name String, :tasks (t/Seqable t/Any)})])
 (defn createFramework
   [name tasks]
   {:name name :tasks tasks})

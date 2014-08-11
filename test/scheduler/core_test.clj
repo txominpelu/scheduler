@@ -4,7 +4,8 @@
             [scheduler.core :refer :all]
             [scheduler.framework :as framework]
             [scheduler.cluster :as cluster]
-     ))
+     )
+   )
 ;; Cluster - Test
 (defn initCluster
   []
