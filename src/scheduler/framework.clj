@@ -35,6 +35,11 @@
   [framework]
  (:tasks framework))
 
+(t/ann getClusterTasks [ts/Cluster -> (t/Seqable (t/Seqable ts/Task))])
+(defn getClusterTasks
+  [cluster]
+  (map getTasks (cluster/getFrameworks cluster)))
+
 (t/ann createFramework [String (t/Seqable t/Any) -> (t/HMap :mandatory {:name String, :tasks (t/Seqable t/Any)})])
 (defn createFramework
   [name tasks]
