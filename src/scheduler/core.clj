@@ -92,6 +92,48 @@
   ;;   register to mesos master
   ;;
   ;;
+
+;; Omega 
+
+(defn resourcesAvailable?
+  [cluster resources]
+  "returns if the resources are available in the cluster"
+  )
+
+(defn commitResources
+  [cluster resources]
+  "returns the new state of the cluster after the resources are commited"
+  )
+
+;; Demands
+
+(defn getResourcesNeeded
+  [demand]
+  )
+
+;; TODO: Add incremental
+;; TODO: Add 
+(defn listenToDemands
+  [cluster demandsCh]
+  (reduce (fn [cluster d]
+    (let [neededRes (getResourcesNeeded demandsCh)]
+      (if (resourcesAvailable? neededRes)
+        (commitResources neededRes)))) cluster (readAll demandsCh)))
+
+;; Frameworks
+
+(defn
+  ;; Commit for resources for its tasks
+  )
+
+
+;; Test1: 
+
+;; Test that without priorities there can be undesired situations
+;; Test that priorities allow both batch jobs and services to work properly
+;; Show that sometimes priorities are not enough (alternative?)
+
+
 (defn -main
   "I don't do a whole lot ... yet."
   [& args]
