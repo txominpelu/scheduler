@@ -14,3 +14,5 @@
                                       :finishedCh (ta/Chan t/Any)
                                       :iter [ t/Any -> t/Any]
                                       }))
+;; Channel
+(t/defalias Message (t/HMap :mandatory {:content t/Any :channel (ta/Chan t/Any)}))

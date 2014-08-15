@@ -39,34 +39,18 @@
             (cluster/withResources (cluster/withFrameworks cluster (set newFrameworks)) res)))]
     (step resources frameworks [])))
 
-
-(defn getEvents
-  [finishedCh registerCh deregisterCh]
-  (let [withKey (fn [channel key] (async/map (fn [x] [key x]) [channel]))
-        finishedCh (withKey finishedCh :finished)
-        registerCh (withKey registerCh :register)
-        deregisterCh (withKey deregisterCh :deregister)]
-    (channel/readAll [finishedCh registerCh deregisterCh])))
-
-
 (defn offerResources
   [cluster]
-  (let [
-        registerCh (cluster/getRegisterCh cluster) 
+  (let [registerCh (cluster/getRegisterCh cluster) 
         finishedCh (cluster/getFinishedCh cluster) 
         frameworks (cluster/getFrameworks cluster)
         resources  (cluster/getResources cluster)
-        events    (getEvents finishedCh registerCh (async/chan))
-        getWithKey (fn [key] (map second (filter (fn [x] (= key (first x))) events)))
-        resources (updateResources resources (getWithKey :finished))
-        frameworks (framework/updateFrameworks frameworks (getWithKey :register) (getWithKey :deregister))
+        events     (channel/readAll [finishedCh registerCh])
+        finished  (map :content (filter (channel/belongsTo? finishedCh) events))
+        registered  (map :content (filter (channel/belongsTo? registerCh) events))
+        resources (updateResources resources finished)
+        frameworks (framework/updateFrameworks frameworks registered [])
         ]
-    (println "events")
-    (println events)
-    (println "finished")
-    (println (getWithKey :finished))
-    (println "register")
-    (println (getWithKey :register))
     (offerToAll frameworks resources cluster)))
 
 ;; Mesos Master
@@ -93,46 +77,9 @@
   ;;
   ;;
 
-;; Omega 
-
-(defn resourcesAvailable?
-  [cluster resources]
-  "returns if the resources are available in the cluster"
-  )
-
-(defn commitResources
-  [cluster resources]
-  "returns the new state of the cluster after the resources are commited"
-  )
-
-;; Demands
-
-(defn getResourcesNeeded
-  [demand]
-  )
-
-;; TODO: Add incremental
-;; TODO: Add 
-(defn listenToDemands
-  [cluster demandsCh]
-  (reduce (fn [cluster d]
-    (let [neededRes (getResourcesNeeded demandsCh)]
-      (if (resourcesAvailable? neededRes)
-        (commitResources neededRes)))) cluster (readAll demandsCh)))
-
-;; Frameworks
-
-(defn
-  ;; Commit for resources for its tasks
-  )
-
-
-;; Test1: 
-
-;; Test that without priorities there can be undesired situations
-;; Test that priorities allow both batch jobs and services to work properly
-;; Show that sometimes priorities are not enough (alternative?)
-
+(defn mesosIter
+  [cluster] 
+  (offerResources cluster))
 
 (defn -main
   "I don't do a whole lot ... yet."

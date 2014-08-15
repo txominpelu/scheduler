@@ -6,32 +6,14 @@
             [scheduler.cluster :as cluster]
      )
    )
-;; Cluster - Test
-(defn initCluster
-  []
-  {:iter (fn [cluster] 
-           (offerResources 
-             cluster))
-   :resources {:cpus 10} 
-   :frameworks [] 
-   :finishedCh (async/chan)
-   :registerCh (async/chan)})
 
 ;; FIXME: For the moment frameworks are only considered to have one task when the task finishes the framework is unreg.
-(defn wrapWithNotifyOnFinished
-  [task fr cluster]
-  (fn []
-    (async/thread 
-      (do
-        (task)
-        (println "notifying")
-        (cluster/finishFramework cluster fr))))) 
 
 ;; Framework
 (deftest registerFramework-test
   (testing "registration of a framework is taken into account "
-    (let [cluster (initCluster)
-          task (wrapWithNotifyOnFinished (fn [] (println "Run task!")) "fr1" cluster)
+    (let [cluster (cluster/initMesosCluster mesosIter)
+          task (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "fr1" cluster)
           framework (framework/createFramework "fr1" [task])]
       (cluster/registerFramework cluster framework)
       (Thread/sleep 1000)
@@ -47,8 +29,8 @@
 ;; see the result of the execution of the task
 (deftest runOneTask-test
   (testing "run one task"
-    (let [cluster (initCluster)
-          task (wrapWithNotifyOnFinished (fn [] (println "Run task!")) "fr1" cluster)
+    (let [cluster (cluster/initMesosCluster  mesosIter)
+          task (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "fr1" cluster)
           framework (framework/createFramework "fr1" [task])]
       (cluster/registerFramework cluster framework)
       (let [newCluster (cluster/runIter cluster)]
@@ -73,8 +55,8 @@
   
 (deftest runClusterTillNoTask-test
   (testing "run till there is no more task"
-    (let [cluster (initCluster)
-          task (wrapWithNotifyOnFinished (fn [] (println "Run task!")) "fr1" cluster)
+    (let [cluster (cluster/initMesosCluster mesosIter)
+          task (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "fr1" cluster)
           framework (framework/createFramework "fr1" [task])]
       (cluster/registerFramework cluster framework)
       (is (= [] (flatten (framework/getClusterTasks (runClusterTillNoTask cluster))))))))

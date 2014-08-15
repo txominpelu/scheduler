@@ -79,6 +79,7 @@
   [task]
  (task))
 
+
 (t/ann plusResources [ts/Resources ts/Resources -> ts/Resources])
 (defn plusResources
   [res1 res2]
@@ -88,3 +89,42 @@
 (defn minusResources
   [res1 res2]
   {:cpus (- (getCpus res1) (getCpus res2))})
+
+(t/ann addResources [ts/Cluster ts/Resources -> ts/Cluster])
+(defn addResources
+  [cluster resources]
+  (withResources cluster (plusResources (getResources cluster) resources)))
+
+(t/ann substractResources [ts/Cluster ts/Resources -> ts/Cluster])
+(defn substractResources
+  [cluster resources]
+  (withResources cluster (minusResources (getResources cluster) resources)))
+
+;; running
+(defn initOmegaCluster
+  [iter]
+  {:iter iter
+   :resources {:cpus 10} 
+   :frameworks [] 
+   :demandsCh (async/chan)
+   :finishedCh (async/chan)
+   })
+
+(defn initMesosCluster
+  [iter]
+  {:iter iter
+   :resources {:cpus 10} 
+   :frameworks [] 
+   :registerCh (async/chan)
+   :finishedCh (async/chan)
+   })
+
+(defn wrapWithNotifyOnFinished
+  [task fr cluster]
+  (fn []
+    (async/thread 
+      (do
+        (task)
+        (println "notifying")
+        (finishFramework cluster fr))))) 
+
