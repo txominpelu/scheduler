@@ -24,7 +24,3 @@
   [channel] 
   (fn [{ch :channel}] (= channel ch)))
 
-
-;;(defn readAll
-  ;;([chs timeout] (readRecursive (fn []  (async/alts!! [(conj chs (async/timeout timeout))] :default nil))))
- ;; ([chs] (readRecursive (fn [] ))))

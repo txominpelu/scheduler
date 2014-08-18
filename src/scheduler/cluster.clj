@@ -101,24 +101,29 @@
   (withResources cluster (minusResources (getResources cluster) resources)))
 
 ;; running
+(t/ann initOmegaCluster [[ts/Cluster -> t/Any] -> ts/Cluster])
 (defn initOmegaCluster
   [iter]
   {:iter iter
    :resources {:cpus 10} 
    :frameworks [] 
+   :registerCh (async/chan)
    :demandsCh (async/chan)
    :finishedCh (async/chan)
    })
 
+(t/ann initMesosCluster [[ts/Cluster -> t/Any] -> ts/Cluster])
 (defn initMesosCluster
   [iter]
   {:iter iter
    :resources {:cpus 10} 
    :frameworks [] 
    :registerCh (async/chan)
+   :demandsCh (async/chan)
    :finishedCh (async/chan)
    })
 
+(t/ann wrapWithNotifyOnFinished [ts/Task ts/Framework ts/Cluster -> t/Any])
 (defn wrapWithNotifyOnFinished
   [task fr cluster]
   (fn []

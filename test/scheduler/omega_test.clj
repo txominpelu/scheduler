@@ -8,12 +8,19 @@
    )
 
  
-;;(deftest runClusterTillNoTask-test
-;;  (testing "run till there is no more task"
-;;    (let [cluster (initCluster)
-;;          task (wrapWithNotifyOnFinished (fn [] (println "Run task!")) "fr1" cluster)
-;;          framework (framework/createFramework "fr1" [task])]
-;;      (cluster/registerFramework cluster framework)
-;;      (is (= [] (flatten (framework/getClusterTasks (runClusterTillNoTask cluster))))))))
+(deftest competeAllCluster-test
+  (testing "when two clusters compete for the whole cluster the first gets it"
+    (let [cluster (cluster/initOmegaCluster omegaIter)
+          task (wrapWithNotifyOnFinished (fn [] (println "Run task!")) "fr1" cluster)
+          fr1 (framework/createFramework "fr1" [task])
+          fr2 (framework/createFramework "fr2" [task])
+         ]
+         (is (= [] (flatten (framework/getClusterTasks (runClusterTillNoTask cluster))))))))
+
+
+;; Test that one framework asks for all cpus and then another framework and see that is the first
+;; Test that both ask for half of the resources and they both get them
+;; Test that one framework asks always before the other and always gets the resources (1/2/1/2) -
+;;   2 always gets refused
 
 

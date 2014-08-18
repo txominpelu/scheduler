@@ -12,5 +12,10 @@
   :main ^:skip-aot scheduler.core
   :target-path "target/%s"
   :plugins [[lein-typed "0.3.5"]]
-  :core.typed {:check [scheduler.channel scheduler.framework scheduler.core scheduler.cluster scheduler.types]}
+  :core.typed {:check [scheduler.channel 
+                       scheduler.framework 
+                       scheduler.core 
+                       scheduler.omega
+                       scheduler.cluster 
+                       scheduler.types]}
   :profiles {:uberjar {:aot :all}})
