@@ -37,6 +37,12 @@
   [cluster]
   (:registerCh cluster))
 
+
+(t/ann getDemandsCh [ts/Cluster -> (ta/Chan t/Any)])
+(defn getDemandsCh
+  [cluster]
+  (:demandsCh cluster))
+
 (t/ann getFinishedCh [ts/Cluster -> (ta/Chan t/Any)])
 (defn getFinishedCh
   [cluster]
@@ -101,7 +107,7 @@
   (withResources cluster (minusResources (getResources cluster) resources)))
 
 ;; running
-(t/ann initOmegaCluster [[ts/Cluster -> t/Any] -> ts/Cluster])
+(t/ann initOmegaCluster [[t/Any -> t/Any] -> ts/Cluster])
 (defn initOmegaCluster
   [iter]
   {:iter iter
@@ -112,7 +118,7 @@
    :finishedCh (async/chan)
    })
 
-(t/ann initMesosCluster [[ts/Cluster -> t/Any] -> ts/Cluster])
+(t/ann initMesosCluster [[t/Any -> t/Any] -> ts/Cluster])
 (defn initMesosCluster
   [iter]
   {:iter iter

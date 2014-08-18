@@ -23,37 +23,39 @@
 
 ;; Demands
  
-;; Demand = {:resources {:cpus 1}}
+;; Demand = {:resources {:cpus 1} :task (fn [] )}
 (t/ann getResourcesNeeded [ts/OmegaDemand -> ts/Resources])
 (defn getResourcesNeeded
   [demand]
   (:resources demand))
 
+(t/ann getTask [ts/OmegaDemand -> [ -> t/Any]])
+(defn getTask
+  [demand]
+  (:task demand))
+
 ;; Cluster
-
-(t/ann getDemandsCh [ts/Cluster -> (ta/Chan t/Any)])
-(defn getDemandsCh
-  [cluster]
-  (:demandsCh cluster))
-
 ;; TODO: Add incremental
 (t/ann tryCommitDemand [ts/Cluster ts/OmegaDemand -> ts/Cluster])
 (defn tryCommitDemand 
   [cluster demand]
   " reads one demand and alters the state of the cluster if needed "
-  (let [ neededRes  (getResourcesNeeded demand) ]
-    (if (resourcesAvailable? neededRes cluster)
-      (commitResources cluster neededRes)
+  (let [ neededRes  (getResourcesNeeded demand) 
+         task (getTask demand)]
+    (if (resourcesAvailable? cluster neededRes)
+      (do
+        (task)
+        (commitResources cluster neededRes))
       cluster)))
 
 (t/ann omegaIter [ts/Cluster -> ts/Cluster])
 (defn omegaIter 
   [cluster]
   (let [finishedCh (cluster/getFinishedCh cluster) 
-        demandsCh  (getDemandsCh cluster)
+        demandsCh  (cluster/getDemandsCh cluster)
         events  (channel/readAll [finishedCh demandsCh])
-        demands (filter (channel/belongsTo? demandsCh) events)
-        finished (filter (channel/belongsTo? finishedCh) events)
+        demands (channel/belongingTo events demandsCh)
+        finished (channel/belongingTo events finishedCh)
         resourcesFreed (map getResourcesNeeded finished)  
         cluster (reduce cluster/addResources cluster resourcesFreed)]
         (reduce tryCommitDemand cluster demands)))

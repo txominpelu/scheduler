@@ -46,8 +46,8 @@
         frameworks (cluster/getFrameworks cluster)
         resources  (cluster/getResources cluster)
         events     (channel/readAll [finishedCh registerCh])
-        finished  (map :content (filter (channel/belongsTo? finishedCh) events))
-        registered  (map :content (filter (channel/belongsTo? registerCh) events))
+        finished   (channel/belongingTo events finishedCh)
+        registered (channel/belongingTo events registerCh)
         resources (updateResources resources finished)
         frameworks (framework/updateFrameworks frameworks registered [])
         ]

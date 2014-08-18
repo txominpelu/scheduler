@@ -19,7 +19,7 @@
                                       }
                              ))
 ;; Channel
-(t/defalias Message (t/HMap :mandatory {:content t/Any :channel (ta/Chan t/Any)}))
+(t/defalias Message (t/HMap :mandatory {:content t/Any :channel (ta/Port t/Any)}))
 
 ;; Omega demands
-(t/defalias OmegaDemand (t/HMap :mandatory {:resources Resources}))
+(t/defalias OmegaDemand (t/HMap :mandatory {:resources Resources :task [-> t/Any]}))
