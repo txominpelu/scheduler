@@ -2,19 +2,10 @@
   (:require [clojure.core.async :as async]
             [clojure.core.typed.async :as ta]
             [clojure.core.typed :as t]
+            [scheduler.resources :as resources]
             [scheduler.types :as ts]
      ))
-
-;; Resources
-
-(t/ann getCpus [ts/Resources -> t/AnyInteger])
-(defn getCpus
-  [resources]
-  (:cpus resources))
-
 ;; Cluster
-
-
 
 
 (t/ann getResources [ts/Cluster -> ts/Resources])
@@ -25,7 +16,7 @@
 (t/ann getClusterCpus [ts/Cluster -> t/AnyInteger])
 (defn getClusterCpus
   [cluster]
-  (getCpus (getResources cluster)))
+  (resources/getCpus (getResources cluster)))
 
 (t/ann getFrameworks [ts/Cluster -> (t/Seqable ts/Framework)])
 (defn getFrameworks
@@ -58,10 +49,10 @@
   [cluster framework] 
   (async/thread (async/>!! (getRegisterCh cluster) framework)))
 
-(t/ann finishFramework [ts/Cluster ts/Framework -> t/Any])
-(defn finishFramework
-  [cluster framework] 
-  (async/thread (async/>!! (getFinishedCh cluster) framework)))
+(t/ann notifyFinishedTask [ts/Cluster ts/Demand -> t/Any])
+(defn notifyFinishedTask
+  [cluster demand] 
+  (async/thread (async/>!! (getFinishedCh cluster) demand)))
 
 (t/ann withResources [ts/Cluster ts/Resources -> ts/Cluster])
 (defn withResources
@@ -86,25 +77,15 @@
  (task))
 
 
-(t/ann plusResources [ts/Resources ts/Resources -> ts/Resources])
-(defn plusResources
-  [res1 res2]
-  {:cpus (+ (getCpus res1) (getCpus res2))})
-
-(t/ann minusResources [ts/Resources ts/Resources -> ts/Resources])
-(defn minusResources
-  [res1 res2]
-  {:cpus (- (getCpus res1) (getCpus res2))})
-
 (t/ann addResources [ts/Cluster ts/Resources -> ts/Cluster])
 (defn addResources
   [cluster resources]
-  (withResources cluster (plusResources (getResources cluster) resources)))
+  (withResources cluster (resources/plusResources (getResources cluster) resources)))
 
 (t/ann substractResources [ts/Cluster ts/Resources -> ts/Cluster])
 (defn substractResources
   [cluster resources]
-  (withResources cluster (minusResources (getResources cluster) resources)))
+  (withResources cluster (resources/minusResources (getResources cluster) resources)))
 
 ;; running
 (t/ann initOmegaCluster [[t/Any -> t/Any] -> ts/Cluster])
@@ -129,13 +110,20 @@
    :finishedCh (async/chan)
    })
 
-(t/ann wrapWithNotifyOnFinished [ts/Task ts/Framework ts/Cluster -> t/Any])
+(defn wrap
+  [task name cluster cpus]
+  (let [demand {:id name :resources {:cpus cpus}}
+        t (fn [] (async/thread 
+                  (do
+                    (task)
+                    (println (str "runned task: " name))
+                    (notifyFinishedTask cluster demand))))]
+     (assoc demand :task t)))
+
+;; FIXME: Circular reference
+(t/ann wrapWithNotifyOnFinished [ts/Task ts/Cluster -> t/Any])
 (defn wrapWithNotifyOnFinished
-  [task fr cluster]
-  (fn []
-    (async/thread 
-      (do
-        (task)
-        (println "notifying")
-        (finishFramework cluster fr))))) 
+  ([task name cluster] (wrap task name cluster 1))
+  ([task name cluster cpus] (wrap task name cluster cpus)))
+  
 

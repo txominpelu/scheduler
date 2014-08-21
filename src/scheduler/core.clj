@@ -1,5 +1,9 @@
 (ns scheduler.core
   (:require [clojure.core.async :as async]
+            [clojure.core.typed :as t]
+            [scheduler.types :as ts]
+            [scheduler.task :as task]
+            [scheduler.resources :as resources]
             [scheduler.channel :as channel]
             [scheduler.cluster :as cluster]
             [scheduler.framework :as framework])
@@ -14,29 +18,25 @@
   [all toDelete]
   (clojure.set/difference (set all) (set toDelete)))
 
+(t/ann updateResources [ts/Resources (t/Seqable ts/Demand) -> ts/Resources])
 (defn updateResources
   [resources finished]
-    (cluster/plusResources resources {:cpus (count finished)}))
+    (resources/plusResources resources (task/resourcesUsedBy finished)))
 
 ;; resp => {:accepted true :task {:cmd ""}}
-
-(defn resourcesUsedBy
-  [tasks]
-  {:cpus (count tasks)})
-
-
 (defn offerToAll
   [frameworks resources cluster]
   (let [frameworks (seq frameworks)
         step (fn step [res frameworks newFrameworks]
      (if (not (empty? frameworks))
             (let [fr (first frameworks)
-                  {tasks :tasks newFr :framework} (framework/offeredResources res fr)
+                  {demands :tasks newFr :framework} (framework/offeredResources res fr)
                   ;; FIXME: Treat resources as monoids
-                  newResources (cluster/minusResources res (resourcesUsedBy tasks))]
-                  (doall (for [t tasks] (t)))
+                  newResources (resources/minusResources res (task/resourcesUsedBy demands))]
+                  (doall (for [d demands] ((task/getTask d))))
                   (step newResources (rest frameworks) (conj newFrameworks newFr )))
             (cluster/withResources (cluster/withFrameworks cluster (set newFrameworks)) res)))]
+
     (step resources frameworks [])))
 
 (defn offerResources

@@ -13,12 +13,12 @@
 (deftest registerFramework-test
   (testing "registration of a framework is taken into account "
     (let [cluster (cluster/initMesosCluster mesosIter)
-          task (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "fr1" cluster)
+          task (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "t1" cluster)
           framework (framework/createFramework "fr1" [task])]
       (cluster/registerFramework cluster framework)
       (Thread/sleep 1000)
     (let [frameworks (cluster/getFrameworks (cluster/runIter cluster))]
-      (is (= [[]] (map framework/getTasks frameworks)))
+      (is (= [[]] (map framework/getDemands frameworks)))
       (is (= #{(framework/withTasks framework [])} frameworks ))))))
 
 
@@ -30,7 +30,7 @@
 (deftest runOneTask-test
   (testing "run one task"
     (let [cluster (cluster/initMesosCluster  mesosIter)
-          task (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "fr1" cluster)
+          task (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "t1" cluster)
           framework (framework/createFramework "fr1" [task])]
       (cluster/registerFramework cluster framework)
       (let [newCluster (cluster/runIter cluster)]
@@ -48,7 +48,7 @@
 (defn runClusterTillNoTask
   [cluster]
   (let [step (fn step [cluster]
-        (if (empty? (flatten (framework/getClusterTasks cluster)))
+        (if (empty? (flatten (framework/getClusterDemands cluster)))
           cluster
           (step (cluster/runIter cluster))))]
     (step cluster)))
@@ -56,10 +56,10 @@
 (deftest runClusterTillNoTask-test
   (testing "run till there is no more task"
     (let [cluster (cluster/initMesosCluster mesosIter)
-          task (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "fr1" cluster)
+          task (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "t1" cluster)
           framework (framework/createFramework "fr1" [task])]
       (cluster/registerFramework cluster framework)
-      (is (= [] (flatten (framework/getClusterTasks (runClusterTillNoTask cluster))))))))
+      (is (= [] (flatten (framework/getClusterDemands (runClusterTillNoTask cluster))))))))
 
 
 

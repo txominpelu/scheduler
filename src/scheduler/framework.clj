@@ -1,6 +1,8 @@
 (ns scheduler.framework
   (:require [clojure.core.async :as async]
             [scheduler.channel :as channel]
+            [scheduler.task :as task]
+            [scheduler.resources :as resources]
             [scheduler.cluster :as cluster]
             [clojure.core.typed :as t]
             [clojure.core.typed.async :as ta]
@@ -25,34 +27,44 @@
 
 (t/ann withTasks [ts/Framework (t/Seqable ts/Task) -> ts/Framework])
 (defn withTasks
-  [framework tasks]
- (assoc framework :tasks tasks))
+  [framework demands]
+ (assoc framework :demands demands))
 
-(t/ann getTasks [ts/Framework -> (t/Seqable ts/Task)])
-(defn getTasks
+(t/ann getDemands [ts/Framework -> (t/Seqable ts/Task)])
+(defn getDemands
   [framework]
- (:tasks framework))
+ (:demands framework))
 
-(t/ann getClusterTasks [ts/Cluster -> (t/Seqable (t/Seqable ts/Task))])
-(defn getClusterTasks
+(t/ann getClusterDemands [ts/Cluster -> (t/Seqable (t/Seqable ts/Task))])
+(defn getClusterDemands
   [cluster]
-  (map getTasks (cluster/getFrameworks cluster)))
+  (map getDemands (cluster/getFrameworks cluster)))
 
-(t/ann createFramework [String (t/Seqable t/Any) -> (t/HMap :mandatory {:name String, :tasks (t/Seqable t/Any)})])
+(t/ann createFramework [String (t/Seqable ts/Demand) -> ts/Framework])
 (defn createFramework
-  [name tasks]
-  {:name name :tasks tasks})
+  [name demands]
+  {:name name :demands demands})
 
-(t/ann offeredResources [ts/Resources ts/Framework -> (t/HMap :mandatory {:tasks (t/ASeq ts/Task), :framework ts/Framework} )])
+;; This scheme doesn't consider task dependencies
+;; needed recursive function 
+(t/ann addDemandIfResources [ts/Demand -> (t/Seqable ts/Demand)])
+(defn addDemandIfResources 
+  [cpus]
+  (fn [acc t]
+    (if (<= (resources/getCpus (task/resourcesUsedBy (conj acc t))) cpus)
+      (conj acc t)
+      acc )))
+
+
+(t/ann offeredResources [ts/Resources ts/Framework -> (t/HMap :mandatory {:tasks (t/ASeq ts/Demand), :framework ts/Framework} )])
 (defn offeredResources
   "offers resources to a framework and returns the resources that are left"
   [resources framework]
-  (let [cpus (cluster/getCpus resources)
-        tasks (getTasks framework)
+  (let [cpus (resources/getCpus resources)
+        tasks (getDemands framework)
         ;; FIXME: One task is one CPU
-        tasksToRun (int (min (count tasks) cpus))
-        tk (t/inst take ts/Task) 
-        sv (t/inst subvec ts/Task)
+        tasksToRun (reverse (reduce (addDemandIfResources cpus) [] tasks))
+        tasksLeft (remove (set tasksToRun) tasks)
        ]
-    {:tasks (tk tasksToRun tasks) :framework (withTasks framework (sv (vec tasks) tasksToRun)) }))
+    {:tasks tasksToRun :framework (withTasks framework tasksLeft) }))
 

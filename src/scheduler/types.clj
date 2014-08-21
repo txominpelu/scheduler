@@ -6,7 +6,14 @@
 
 (t/defalias Resources (t/HMap :mandatory {:cpus t/AnyInteger}))
 (t/defalias Task [ -> t/Any])
-(t/defalias Framework (t/HMap :mandatory {:tasks (t/Seqable Task) :name String}))
+
+;; Channel
+(t/defalias Message (t/HMap :mandatory {:content t/Any :channel (ta/Port t/Any)}))
+
+;; Omega demands
+(t/defalias Demand (t/HMap :mandatory {:id String :resources Resources :task Task}))
+
+(t/defalias Framework (t/HMap :mandatory {:demands (t/Seqable Demand) :name String}))
 
 (t/defalias Cluster (t/HMap :mandatory {
                                       :resources Resources
@@ -18,8 +25,3 @@
                                       :registerCh (ta/Chan t/Any)
                                       }
                              ))
-;; Channel
-(t/defalias Message (t/HMap :mandatory {:content t/Any :channel (ta/Port t/Any)}))
-
-;; Omega demands
-(t/defalias OmegaDemand (t/HMap :mandatory {:resources Resources :task [-> t/Any]}))
