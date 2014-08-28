@@ -20,18 +20,22 @@
   (fn [{cpus :cpus id :id}]
     (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) id cluster cpus)))
 
-(defn test-demands
-  [demands expSuccess expFailed expCpus]
-  (let [cluster (cluster/initOmegaCluster omegaIter) 
-        cDemand (createDemand cluster)
-        demands (map cDemand demands)]
-        (demandResources cluster demands)
-        (let [{newCluster :cluster logs :logs} (cluster/runIter cluster)
-              [success failed] (partition-by :success logs)]
-           (is (= (map :id (map :demand success)) expSuccess))
-           (is (= (map :id (map :demand failed))  expFailed))
-           (is (= expCpus (cluster/getClusterCpus newCluster))))))
+(defn test-iter
+  [cluster [demands expSuccess expFailed expCpus]]
+    (let [ cDemand (createDemand cluster)
+           demands (map cDemand demands)]
+          (demandResources cluster demands)
+          (let [{newCluster :cluster logs :logs} (cluster/runIter cluster)
+                [success failed] (partition-by :success logs)]
+             (is (= (map :id (map :demand success)) expSuccess))
+             (is (= (map :id (map :demand failed))  expFailed))
+             (is (= expCpus (cluster/getClusterCpus newCluster)))
+            newCluster)))
 
+(defn test-n-iters
+  [fixtures]
+  (let [cluster (cluster/initOmegaCluster omegaIter)]
+    (reduce (fn [acc f] (test-iter acc f)) cluster fixtures)))
 
 
 ;; Test that one framework asks for all cpus and then another framework and see that is the first
@@ -39,13 +43,13 @@
   (testing "when two frameworks compete for the whole cluster the first gets it"
     (let [demand1 {:id "t1" :cpus 10}
           demand2 {:id "t2" :cpus 1}]
-      (test-demands [demand1 demand2] ["t1"] ["t2"] 0))))
+      (test-n-iters [[[demand1 demand2] ["t1"] ["t2"] 0]]))))
 
 (deftest halfEach-test
   (testing "when two frameworks take half of the cluster"
     (let [demand1 {:id "t1" :cpus 5}
           demand2 {:id "t2" :cpus 5}]
-      (test-demands [demand1 demand2] ["t1" "t2"] [] 0))))
+      (test-n-iters [[[demand1 demand2] ["t1" "t2"] [] 0]]))))
 
 ;; Test that both ask for half of the resources and they both get them
 
