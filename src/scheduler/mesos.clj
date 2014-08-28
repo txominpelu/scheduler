@@ -1,4 +1,4 @@
-(ns scheduler.core
+(ns scheduler.mesos
   (:require [clojure.core.async :as async]
             [clojure.core.typed :as t]
             [scheduler.types :as ts]

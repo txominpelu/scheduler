@@ -1,7 +1,7 @@
-(ns scheduler.core-test
+(ns scheduler.mesos-test
   (:require [clojure.test :refer :all]
             [clojure.core.async :as async]
-            [scheduler.core :refer :all]
+            [scheduler.mesos :refer :all]
             [scheduler.framework :as framework]
             [scheduler.cluster :as cluster]
      )
