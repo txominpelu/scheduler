@@ -39,15 +39,18 @@
 ;; TODO: Add incremental
 (t/ann tryCommitDemand [ts/Cluster ts/Demand -> ts/Cluster])
 (defn tryCommitDemand 
-  [cluster demand]
+  [{cluster :cluster logs :logs} demand]
   " reads one demand and alters the state of the cluster if needed "
   (let [ neededRes  (getResourcesNeeded demand) 
-         task (getTask demand)]
-    (if (resourcesAvailable? cluster neededRes)
-      (do
-        (task)
-        (commitResources cluster neededRes))
-      cluster)))
+         task (getTask demand)
+         available (resourcesAvailable? cluster neededRes)
+         log {:demand demand  :success available}
+         newCluster (if available
+                     (do 
+                       (task)
+                       (commitResources cluster neededRes))
+                     cluster) ]
+      {:cluster newCluster :logs (conj logs log)}))
 
 (t/ann omegaIter [ts/Cluster -> ts/Cluster])
 (defn omegaIter 
@@ -60,7 +63,7 @@
     (let
         [resourcesFreed (map getResourcesNeeded finished)  
         cluster (reduce cluster/addResources cluster resourcesFreed)]
-        (reduce tryCommitDemand cluster demands))))
+        (reduce tryCommitDemand {:cluster cluster :logs []} demands))))
 
 
 ;; Frameworks
