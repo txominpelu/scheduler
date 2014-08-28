@@ -23,21 +23,16 @@
   [resources finished]
     (resources/plusResources resources (task/resourcesUsedBy finished)))
 
-;; resp => {:accepted true :task {:cmd ""}}
 (defn offerToAll
-  [frameworks resources cluster]
-  (let [frameworks (seq frameworks)
-        step (fn step [res frameworks newFrameworks]
-     (if (not (empty? frameworks))
-            (let [fr (first frameworks)
-                  {demands :tasks newFr :framework} (framework/offeredResources res fr)
-                  ;; FIXME: Treat resources as monoids
-                  newResources (resources/minusResources res (task/resourcesUsedBy demands))]
-                  (doall (for [d demands] ((task/getTask d))))
-                  (step newResources (rest frameworks) (conj newFrameworks newFr )))
-            (cluster/withResources (cluster/withFrameworks cluster (set newFrameworks)) res)))]
+  [cluster fr]
+  (let [{demands :tasks newFr :framework} (framework/offeredResources (cluster/getResources cluster) fr)
+        ;; FIXME: Treat resources as monoids
+        newCluster (cluster/substractResources cluster (task/resourcesUsedBy demands))
+        newFrameworks (conj (cluster/getFrameworks newCluster) newFr)]
+        (doall (for [d demands] ((task/getTask d))))
+        (cluster/withFrameworks newCluster (set newFrameworks))))
 
-    (step resources frameworks [])))
+;; resp => {:accepted true :task {:cmd ""}}
 
 (defn offerResources
   [cluster]
@@ -51,7 +46,7 @@
         resources (updateResources resources finished)
         frameworks (framework/updateFrameworks frameworks registered [])
         ]
-    (offerToAll frameworks resources cluster)))
+    (reduce offerToAll (cluster/withResources cluster resources) frameworks)))
 
 ;; Mesos Master
   ;; init():

@@ -22,8 +22,6 @@
       (is (= #{(framework/withTasks framework [])} frameworks ))))))
 
 
-
-
 ;; create a scheduler with one job with one task
 ;; connect the scheduler to the cluster
 ;; see the result of the execution of the task
