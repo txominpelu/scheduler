@@ -22,19 +22,3 @@
   [demand]
   (:task demand))
 
-
-
-(t/ann plusResources [ts/Resources ts/Resources -> ts/Resources])
-(defn plusResources
-  [res1 res2]
-  {:cpus (+ (resources/getCpus res1) (resources/getCpus res2))})
-
-(t/ann minusResources [ts/Resources ts/Resources -> ts/Resources])
-(defn minusResources
-  [res1 res2]
-  {:cpus (- (resources/getCpus res1) (resources/getCpus res2))})
-
-(t/ann resourcesUsedBy [(t/Seqable ts/Demand) -> ts/Resources])
-(defn resourcesUsedBy
-  [demands]
-  (reduce plusResources {:cpus 0} (map getResources demands)))

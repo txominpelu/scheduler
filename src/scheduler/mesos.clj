@@ -21,13 +21,15 @@
 (t/ann updateResources [ts/Resources (t/Seqable ts/Demand) -> ts/Resources])
 (defn updateResources
   [resources finished]
-    (resources/plusResources resources (task/resourcesUsedBy finished)))
+    (reduce resources/plusResources resources finished))
 
 (defn offerToAll
   [cluster fr]
   (let [{demands :tasks newFr :framework} (framework/offeredResources (cluster/getResources cluster) fr)
         ;; FIXME: Treat resources as monoids
-        newCluster (cluster/substractResources cluster (task/resourcesUsedBy demands))
+        resources (map task/getResources demands)
+        resourcesTaken (reduce resources/plusResources resources)
+        newCluster (cluster/substractResources cluster resourcesTaken)
         newFrameworks (conj (cluster/getFrameworks newCluster) newFr)]
         (doall (for [d demands] ((task/getTask d))))
         (cluster/withFrameworks newCluster (set newFrameworks))))

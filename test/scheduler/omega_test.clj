@@ -17,8 +17,8 @@
 
 (defn createDemand
   [cluster] 
-  (fn [{cpus :cpus id :id}]
-    (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) id cluster cpus)))
+  (fn [{cpus :cpus memory :memory id :id}]
+    (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) id cluster cpus memory)))
 
 (defn test-iter
   [cluster [demands expSuccess expFailed expCpus]]
@@ -41,15 +41,21 @@
 ;; Test that one framework asks for all cpus and then another framework and see that is the first
 (deftest competeAllCluster-test
   (testing "when two frameworks compete for the whole cluster the first gets it"
-    (let [demand1 {:id "t1" :cpus 10}
-          demand2 {:id "t2" :cpus 1}]
+    (let [demand1 {:id "t1" :cpus 10 :memory 8}
+          demand2 {:id "t2" :cpus 1 :memory 8}]
       (test-n-iters [[[demand1 demand2] ["t1"] ["t2"] 0]]))))
 
 (deftest halfEach-test
   (testing "when two frameworks take half of the cluster"
-    (let [demand1 {:id "t1" :cpus 5}
-          demand2 {:id "t2" :cpus 5}]
+    (let [demand1 {:id "t1" :cpus 5 :memory 4}
+          demand2 {:id "t2" :cpus 5 :memory 4}]
       (test-n-iters [[[demand1 demand2] ["t1" "t2"] [] 0]]))))
+
+(deftest competeMemory-test
+  (testing "when two frameworks compete for memory"
+    (let [demand1 {:id "t1" :cpus 1 :memory 5}
+          demand2 {:id "t2" :cpus 1 :memory 4}]
+      (test-n-iters [[[demand1 demand2] ["t1"] ["t2"] 9]]))))
 
 ;; Test that both ask for half of the resources and they both get them
 
@@ -57,7 +63,7 @@
 (deftest resourcesRestored-test
   (testing "resources are restored when a tasks finished"
     (let [cluster (cluster/initOmegaCluster omegaIter)
-          demand1 (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "t1" cluster 10) ;; 10 cpus
+          demand1 (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "t1" cluster 10 8) ;; 10 cpus
          ]
          (demandResources cluster [demand1])
          (let [{newCluster :cluster} (cluster/runIter cluster)]

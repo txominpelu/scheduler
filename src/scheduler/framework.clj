@@ -49,21 +49,21 @@
 ;; needed recursive function 
 (t/ann addDemandIfResources [ts/Demand -> (t/Seqable ts/Demand)])
 (defn addDemandIfResources 
-  [cpus]
+  [totalRes]
   (fn [acc t]
-    (if (<= (resources/getCpus (task/resourcesUsedBy (conj acc t))) cpus)
-      (conj acc t)
-      acc )))
+    (let [demandsRes (map task/getResources (conj acc t))]
+      (if (resources/<= (reduce resources/plusResources demandsRes) totalRes)
+        (conj acc t)
+        acc ))))
 
 
 (t/ann offeredResources [ts/Resources ts/Framework -> (t/HMap :mandatory {:tasks (t/ASeq ts/Demand), :framework ts/Framework} )])
 (defn offeredResources
   "offers resources to a framework and returns the resources that are left"
   [resources framework]
-  (let [cpus (resources/getCpus resources)
-        tasks (getDemands framework)
+  (let [tasks (getDemands framework)
         ;; FIXME: One task is one CPU
-        tasksToRun (reverse (reduce (addDemandIfResources cpus) [] tasks))
+        tasksToRun (reverse (reduce (addDemandIfResources resources) [] tasks))
         tasksLeft (remove (set tasksToRun) tasks)
        ]
     {:tasks tasksToRun :framework (withTasks framework tasksLeft) }))
