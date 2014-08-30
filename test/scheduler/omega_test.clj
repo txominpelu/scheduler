@@ -75,3 +75,8 @@
 ;;   2 always gets refused
 
 
+;; Test that drf works
+(deftest drf-test
+  (testing "that drf works"
+    (drf totalResources consumedResources dominantShares resourcesGiven)))
+

@@ -14,7 +14,7 @@
   :plugins [[lein-typed "0.3.5"]]
   :core.typed {:check [scheduler.channel 
                        scheduler.framework 
-                       scheduler.core 
+                       scheduler.mesos 
                        scheduler.omega
                        scheduler.cluster 
                        scheduler.types]}
