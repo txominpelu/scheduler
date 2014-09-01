@@ -45,25 +45,25 @@
   [tuples]
   (into {} tuples))
 
-;;(def totalResources {:cpus 9 :memory 18}) 
-;;(def dominantShares {:fr1 0 :fr2 0}) 
-;;(def resourcesGiven {:fr1 {:cpus 0 :memory 0} :fr2 {:cpus 0 :memory 0}}) 
-;;(def demands {:fr1 {:cpus 1 :memory 4} :fr2 {:cpus 3 :memory 1}})
-
-
 (defn internalDrf
-  [totRes consRes domShares resGiven demandsMap]
+  [totRes consRes domShares resGiven demandsMap sortedDemands]
   (let [i (first (reduce minShares domShares)) ;;
         di (first (i demandsMap))
+        resDi (task/getResources di)
         newDemandsMap (withDemands demandsMap i (rest (i demandsMap)))
-        newConsRes (resources/plusResources consRes di)
+        newConsRes (resources/plusResources consRes resDi)
         ui (i resGiven)
-        newResGiven (withResources resGiven i (resources/plusResources ui di))
-        newDomShares (shares newResGiven totRes)]
+        newResGiven (withResources resGiven i (resources/plusResources ui resDi))
+        newDomShares (shares newResGiven totRes)
+        newSortedDemands (conj sortedDemands di) 
+        demandsLeft (apply concat (map (fn [[k v]] v) newDemandsMap))
+        ]
     (if (resources/<= newConsRes totRes)
       (do 
-        (println (str "Given to:" i))
-        (internalDrf totRes newConsRes newDomShares newResGiven newDemandsMap)))))
+        ;;(println (str "Given to: " i))
+        (internalDrf totRes newConsRes newDomShares newResGiven newDemandsMap newSortedDemands))
+        (concat newSortedDemands  demandsLeft)
+      )))
 
 
 (defn drf
@@ -72,13 +72,14 @@
         frameworks (map (fn [d] (keyword (task/getFramework d))) demands)
         dominantShares (tuplesToMap (map vector frameworks (repeat 0)))
         resourcesGiven (tuplesToMap (map vector frameworks (repeat resources/emptyResources)))
-        demandsMap (tuplesToMap (map (fn [[key val]] [(keyword key) (map task/getResources val)]) (group-by task/getFramework demands)))
+        demandsMap (tuplesToMap (map (fn [[key val]] [(keyword key) val]) (group-by task/getFramework demands)))
         ]
     (internalDrf totalResources 
          resources/emptyResources 
          dominantShares 
          resourcesGiven
-         demandsMap)))
+         demandsMap
+         [])))
 
 ;; Test1: 
 

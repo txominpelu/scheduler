@@ -79,18 +79,27 @@
 (def totalResources {:cpus 9 :memory 18}) 
 (def dominantShares {:fr1 0 :fr2 0}) 
 (def resourcesGiven {:fr1 {:cpus 0 :memory 0} :fr2 {:cpus 0 :memory 0}}) 
-(def demands {:fr1 (repeat 5 {:cpus 1 :memory 4}) :fr2 (repeat 5 {:cpus 3 :memory 1})})
+(defn dem1 [cluster] ((createDemand cluster) {:id "t1" :cpus 1 :memory 4 :framework "fr1"}))
+(defn dem2 [cluster] ((createDemand cluster) {:id "t2" :cpus 3 :memory 1 :framework "fr2"}))
 
 
 (deftest internalDrf-test
   (testing "that internally drf works"
-    (internalDrf totalResources resources/emptyResources dominantShares resourcesGiven demands)))
+    (let [cluster (cluster/withResources (cluster/initOmegaCluster omegaIter) totalResources)
+          d1 (dem1 cluster)
+          d2 (dem2 cluster)
+          demands {:fr1 (repeat 5 d1) :fr2 (repeat 5 d2)}]
+    (internalDrf totalResources resources/emptyResources dominantShares resourcesGiven demands []))))
 
 (deftest drf-test
   (testing "that drf works"
     (let [cluster (cluster/withResources (cluster/initOmegaCluster omegaIter) totalResources)
-          demandsFr1 (repeat 5 ((createDemand cluster) {:id "t1" :cpus 1 :memory 4 :framework "fr1"}))
-          demandsFr2 (repeat 5 ((createDemand cluster) {:id "t2" :cpus 3 :memory 1 :framework "fr2"}))
+          d1 (dem1 cluster)
+          d2 (dem2 cluster)
+          demandsFr1 (repeat 5 d1)
+          demandsFr2 (repeat 5 d2)
+          result (drf cluster (concat demandsFr1 demandsFr2))
          ]
-    (drf cluster (concat demandsFr1 demandsFr2)))))
+    (is (= (map :id (take 5 result))
+           (map :id [d1 d2 d1 d2 d1]))))))
 
