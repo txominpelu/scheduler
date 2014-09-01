@@ -22,3 +22,7 @@
   [demand]
   (:task demand))
 
+(t/ann getFramework [ts/Demand -> String])
+(defn getFramework
+  [demand]
+  (:framework demand))

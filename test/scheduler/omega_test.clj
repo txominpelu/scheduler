@@ -2,6 +2,7 @@
   (:require [clojure.test :refer :all]
             [clojure.core.async :as async]
             [scheduler.omega :refer :all]
+            [scheduler.resources :as resources]
             [scheduler.framework :as framework]
             [scheduler.cluster :as cluster]
      )
@@ -17,8 +18,8 @@
 
 (defn createDemand
   [cluster] 
-  (fn [{cpus :cpus memory :memory id :id}]
-    (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) id cluster cpus memory)))
+  (fn [{cpus :cpus memory :memory id :id framework :framework}]
+    (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) id cluster cpus memory framework)))
 
 (defn test-iter
   [cluster [demands expSuccess expFailed expCpus]]
@@ -41,20 +42,20 @@
 ;; Test that one framework asks for all cpus and then another framework and see that is the first
 (deftest competeAllCluster-test
   (testing "when two frameworks compete for the whole cluster the first gets it"
-    (let [demand1 {:id "t1" :cpus 10 :memory 8}
-          demand2 {:id "t2" :cpus 1 :memory 8}]
+    (let [demand1 {:id "t1" :cpus 10 :memory 8 :framework "fr1"}
+          demand2 {:id "t2" :cpus 1 :memory 8 :framework "fr2"}]
       (test-n-iters [[[demand1 demand2] ["t1"] ["t2"] 0]]))))
 
 (deftest halfEach-test
   (testing "when two frameworks take half of the cluster"
-    (let [demand1 {:id "t1" :cpus 5 :memory 4}
-          demand2 {:id "t2" :cpus 5 :memory 4}]
+    (let [demand1 {:id "t1" :cpus 5 :memory 4 :framework "fr1"}
+          demand2 {:id "t2" :cpus 5 :memory 4 :framework "fr2"}]
       (test-n-iters [[[demand1 demand2] ["t1" "t2"] [] 0]]))))
 
 (deftest competeMemory-test
   (testing "when two frameworks compete for memory"
-    (let [demand1 {:id "t1" :cpus 1 :memory 5}
-          demand2 {:id "t2" :cpus 1 :memory 4}]
+    (let [demand1 {:id "t1" :cpus 1 :memory 5 :framework "fr1"}
+          demand2 {:id "t2" :cpus 1 :memory 4 :framework "fr2"}]
       (test-n-iters [[[demand1 demand2] ["t1"] ["t2"] 9]]))))
 
 ;; Test that both ask for half of the resources and they both get them
@@ -63,7 +64,7 @@
 (deftest resourcesRestored-test
   (testing "resources are restored when a tasks finished"
     (let [cluster (cluster/initOmegaCluster omegaIter)
-          demand1 (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "t1" cluster 10 8) ;; 10 cpus
+          demand1 (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "t1" cluster 10 8 "fr1") ;; 10 cpus
          ]
          (demandResources cluster [demand1])
          (let [{newCluster :cluster} (cluster/runIter cluster)]
@@ -75,8 +76,21 @@
 ;;   2 always gets refused
 
 
-;; Test that drf works
+(def totalResources {:cpus 9 :memory 18}) 
+(def dominantShares {:fr1 0 :fr2 0}) 
+(def resourcesGiven {:fr1 {:cpus 0 :memory 0} :fr2 {:cpus 0 :memory 0}}) 
+(def demands {:fr1 (repeat 5 {:cpus 1 :memory 4}) :fr2 (repeat 5 {:cpus 3 :memory 1})})
+
+
+(deftest internalDrf-test
+  (testing "that internally drf works"
+    (internalDrf totalResources resources/emptyResources dominantShares resourcesGiven demands)))
+
 (deftest drf-test
   (testing "that drf works"
-    (drf totalResources consumedResources dominantShares resourcesGiven)))
+    (let [cluster (cluster/withResources (cluster/initOmegaCluster omegaIter) totalResources)
+          demandsFr1 (repeat 5 ((createDemand cluster) {:id "t1" :cpus 1 :memory 4 :framework "fr1"}))
+          demandsFr2 (repeat 5 ((createDemand cluster) {:id "t2" :cpus 3 :memory 1 :framework "fr2"}))
+         ]
+    (drf cluster (concat demandsFr1 demandsFr2)))))
 

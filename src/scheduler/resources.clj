@@ -37,3 +37,4 @@
   {:cpus (- (getCpus res1) (getCpus res2))
    :memory (- (getMemory res1) (getMemory res2))})
 
+(def emptyResources {:cpus 0 :memory 0}) 

@@ -150,8 +150,10 @@
    })
 
 (defn wrap
-  [task name cluster cpus memory]
-  (let [demand {:id name :resources {:cpus cpus :memory memory}}
+  [task name cluster cpus memory framework]
+  (let [demand {:id name 
+                :resources {:cpus cpus :memory memory}
+                :framework framework}
         t (fn [] (async/thread 
                   (do
                     (task)
@@ -162,7 +164,7 @@
 ;; FIXME: Circular reference
 (t/ann wrapWithNotifyOnFinished [ts/Task ts/Cluster -> t/Any])
 (defn wrapWithNotifyOnFinished
-  ([task name cluster] (wrap task name cluster 1 1))
-  ([task name cluster cpus memory] (wrap task name cluster cpus memory)))
+  ([task name cluster] (wrap task name cluster 1 1 "fr1"))
+  ([task name cluster cpus memory framework] (wrap task name cluster cpus memory framework)))
   
 
