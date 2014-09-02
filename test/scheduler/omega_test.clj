@@ -9,6 +9,10 @@
    )
 
  
+(defn fifo
+  [cluster demands]
+  demands)
+
 (defn demandResources 
   [cluster demands] 
   (doall (for [d demands] 
@@ -34,9 +38,11 @@
             newCluster)))
 
 (defn test-n-iters
-  [fixtures]
-  (let [cluster (cluster/initOmegaCluster omegaIter)]
-    (reduce (fn [acc f] (test-iter acc f)) cluster fixtures)))
+  ([fixtures]
+    (let [cluster (cluster/initOmegaCluster (omegaIter fifo))]
+      (test-n-iters fixtures cluster)))
+  ([fixtures cluster]
+      (reduce (fn [acc f] (test-iter acc f)) cluster fixtures)))
 
 
 ;; Test that one framework asks for all cpus and then another framework and see that is the first
@@ -58,12 +64,27 @@
           demand2 {:id "t2" :cpus 1 :memory 4 :framework "fr2"}]
       (test-n-iters [[[demand1 demand2] ["t1"] ["t2"] 9]]))))
 
+;; Fairness testso
+(def totalResources {:cpus 9 :memory 18}) 
+(def d1Data {:id "t1" :cpus 1 :memory 4 :framework "fr1"})
+(def d2Data {:id "t2" :cpus 3 :memory 1 :framework "fr2"})
+(defn dem1 [cluster] ((createDemand cluster) d1Data))
+(defn dem2 [cluster] ((createDemand cluster) d2Data))
+
+(deftest dominantFairness-test
+  (testing "when the cluster assign resources with fairness"
+    (let [cluster (cluster/withResources (cluster/initOmegaCluster (omegaIter drf)) totalResources)
+          demandsFr1 (repeat 5 d1Data)
+          demandsFr2 (repeat 5 d2Data)]
+      (test-n-iters [[(concat demandsFr1 demandsFr2) ["t1" "t2" "t1" "t2" "t1"] ["t1" "t1" "t2" "t2" "t2"] 0]] cluster))))
+
+
 ;; Test that both ask for half of the resources and they both get them
 
 ;; Test that finished tasks are taken into account
 (deftest resourcesRestored-test
   (testing "resources are restored when a tasks finished"
-    (let [cluster (cluster/initOmegaCluster omegaIter)
+    (let [cluster (cluster/initOmegaCluster (omegaIter fifo))
           demand1 (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "t1" cluster 10 8 "fr1") ;; 10 cpus
          ]
          (demandResources cluster [demand1])
@@ -76,16 +97,12 @@
 ;;   2 always gets refused
 
 
-(def totalResources {:cpus 9 :memory 18}) 
 (def dominantShares {:fr1 0 :fr2 0}) 
 (def resourcesGiven {:fr1 {:cpus 0 :memory 0} :fr2 {:cpus 0 :memory 0}}) 
-(defn dem1 [cluster] ((createDemand cluster) {:id "t1" :cpus 1 :memory 4 :framework "fr1"}))
-(defn dem2 [cluster] ((createDemand cluster) {:id "t2" :cpus 3 :memory 1 :framework "fr2"}))
-
 
 (deftest internalDrf-test
   (testing "that internally drf works"
-    (let [cluster (cluster/withResources (cluster/initOmegaCluster omegaIter) totalResources)
+    (let [cluster (cluster/withResources (cluster/initOmegaCluster (omegaIter fifo)) totalResources)
           d1 (dem1 cluster)
           d2 (dem2 cluster)
           demands {:fr1 (repeat 5 d1) :fr2 (repeat 5 d2)}]
@@ -93,7 +110,7 @@
 
 (deftest drf-test
   (testing "that drf works"
-    (let [cluster (cluster/withResources (cluster/initOmegaCluster omegaIter) totalResources)
+    (let [cluster (cluster/withResources (cluster/initOmegaCluster (omegaIter fifo)) totalResources)
           d1 (dem1 cluster)
           d2 (dem2 cluster)
           demandsFr1 (repeat 5 d1)

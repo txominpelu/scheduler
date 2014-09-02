@@ -11,8 +11,9 @@
 
 (t/ann omegaIter [ts/Cluster -> ts/Cluster])
 (defn omegaIter 
-  [cluster]
-  (let [finishedCh (cluster/getFinishedCh cluster) 
+  [sorting]
+  (fn [cluster]
+    (let [finishedCh (cluster/getFinishedCh cluster) 
         demandsCh  (cluster/getDemandsCh cluster)
         events  (channel/readAll [finishedCh demandsCh])
         demands (channel/belongingTo events demandsCh)
@@ -20,7 +21,7 @@
         finishedRes (map task/getResources finishedTasks)
         resourcesFreed (reduce resources/plusResources finishedRes) 
         cluster (cluster/addResources cluster resourcesFreed) ]
-        (reduce cluster/tryCommitDemand {:cluster cluster :logs []} demands)))
+        (reduce cluster/tryCommitDemand {:cluster cluster :logs []} (sorting cluster demands)))))
 
 (defn shares
   [resGiven totRes]
