@@ -1,4 +1,4 @@
-(ns scheduler.omega
+(ns scheduler.fullomega
   (:require [clojure.core.async :as async]
             [clojure.core.typed :as t]
             [clojure.core.typed.async :as ta]
@@ -8,6 +8,8 @@
             [scheduler.task :as task]
             [scheduler.utils :as utils]
             [scheduler.resources :as resources]
+            [scheduler.fullresources :as fullresources]
+            [scheduler.omega :as omega]
             [scheduler.framework :as framework]))
 
 (t/ann omegaIter [ts/Cluster -> ts/Cluster])
@@ -20,64 +22,27 @@
         demands (channel/belongingTo events demandsCh)
         finishedTasks (channel/belongingTo events finishedCh)
         finishedRes (map task/getResources finishedTasks)
-        resourcesFreed (reduce resources/plusResources finishedRes) 
-        cluster (cluster/addResources cluster resourcesFreed) ]
-        (reduce cluster/tryCommitDemand {:cluster cluster :logs []} (sorting cluster demands)))))
-
-(defn shares
-  [resGiven totRes]
-  (let [shs (map (fn [[fr ui]] [fr (apply max (map (fn [[j uij]] (/ uij (j totRes))) ui))]) resGiven)]
-    (into {} shs)))
-
-(defn minShares
-  [[minFr minSh] [fr sh]]
-  (if (> minSh sh)
-    [fr sh]
-    [minFr minSh]))
-
-(defn withResources
-  [resGiven fr res]
-  (assoc resGiven fr res))
-
-(defn withDemands
-  [demandsMap fr demands]
-  (assoc demandsMap fr demands))
-
-(defn internalDrf
-  [totRes consRes domShares resGiven demandsMap sortedDemands]
-  (let [i (first (reduce minShares domShares)) ;;
-        di (first (i demandsMap))
-        resDi (task/getResources di)
-        newDemandsMap (withDemands demandsMap i (rest (i demandsMap)))
-        newConsRes (resources/plusResources consRes resDi)
-        ui (i resGiven)
-        newResGiven (withResources resGiven i (resources/plusResources ui resDi))
-        newDomShares (shares newResGiven totRes)
-        newSortedDemands (conj sortedDemands di) 
-        demandsLeft (apply concat (map (fn [[k v]] v) newDemandsMap))
-        ]
-    (if (resources/<= newConsRes totRes)
-      (do 
-        ;;(println (str "Given to: " i))
-        (internalDrf totRes newConsRes newDomShares newResGiven newDemandsMap newSortedDemands))
-        (concat newSortedDemands  demandsLeft)
-      )))
-
+        resourcesFreed (reduce fullresources/plusResources finishedRes) 
+        cluster (cluster/addFullResources cluster resourcesFreed) ]
+        (reduce cluster/tryFullCommitDemand {:cluster cluster :logs []} (sorting cluster demands)))))
 
 (defn drf
   [cluster demands] 
-  (let [totalResources (cluster/getResources cluster)
+  (let [totalResources (fullresources/aggregatedResources (cluster/getResources cluster))
         frameworks (map (fn [d] (keyword (task/getFramework d))) demands)
         dominantShares (utils/tuplesToMap (map vector frameworks (repeat 0)))
         resourcesGiven (utils/tuplesToMap (map vector frameworks (repeat resources/emptyResources)))
         demandsMap (utils/tuplesToMap (map (fn [[key val]] [(keyword key) val]) (group-by task/getFramework demands)))
         ]
-    (internalDrf totalResources 
+    (println "totalResources")
+    (println totalResources)
+    (omega/internalDrf totalResources 
          resources/emptyResources 
          dominantShares 
          resourcesGiven
          demandsMap
          [])))
+
 
 ;; Test1: 
 

@@ -5,6 +5,12 @@
      ))
 
 (t/defalias Resources (t/HMap :mandatory {:cpus t/AnyInteger}))
+(t/defalias FullResources (t/HMap :mandatory 
+                             {:slave1 Resources
+                              :slave2 Resources
+                              :slave3 Resources
+                              :slave4 Resources
+                              }))
 (t/defalias Task [ -> t/Any])
 
 ;; Channel

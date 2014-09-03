@@ -3,6 +3,7 @@
             [clojure.core.typed.async :as ta]
             [clojure.core.typed :as t]
             [scheduler.resources :as resources]
+            [scheduler.fullresources :as fullresources]
             [scheduler.task :as task]
             [scheduler.types :as ts]
      ))
@@ -88,26 +89,24 @@
   [cluster resources]
   (withResources cluster (resources/plusResources (getResources cluster) resources)))
 
+(t/ann addFullResources [ts/Cluster ts/Resources -> ts/Cluster])
+(defn addFullResources
+  [cluster resources]
+  (withResources cluster (fullresources/plusResources (getResources cluster) resources)))
+
 (t/ann substractResources [ts/Cluster ts/Resources -> ts/Cluster])
 (defn substractResources
   [cluster resources]
+  "returns the new state of the cluster after the resources are commited"
   (withResources cluster (resources/minusResources (getResources cluster) resources)))
 
-;; Omega 
-
-(t/ann resourcesAvailable? [ts/Cluster ts/Resources -> Boolean])
-(defn resourcesAvailable?
-  [cluster resources]
-  "returns if the resources are available in the cluster"
-  (and 
-    (>= (getClusterCpus cluster) (resources/getCpus resources))
-    (>= (getClusterMemory cluster) (resources/getMemory resources))))
-
-(t/ann commitResources [ts/Cluster ts/Resources -> ts/Cluster])
-(defn commitResources
+(t/ann substractFullResources [ts/Cluster ts/Resources -> ts/Cluster])
+(defn substractFullResources
   [cluster resources]
   "returns the new state of the cluster after the resources are commited"
-  (substractResources cluster resources))
+  (withResources cluster (fullresources/minusResources (getResources cluster) resources)))
+
+;; Omega 
 
 ;; Cluster
 ;; TODO: Add incremental
@@ -117,12 +116,27 @@
   " reads one demand and alters the state of the cluster if needed "
   (let [ neededRes  (task/getResources demand) 
          task (task/getTask demand)
-         available (resourcesAvailable? cluster neededRes)
+         available (resources/<= neededRes (getResources cluster))
          log {:demand demand  :success available}
          newCluster (if available
                      (do 
                        (task)
-                       (commitResources cluster neededRes))
+                       (substractResources cluster neededRes))
+                     cluster) ]
+      {:cluster newCluster :logs (conj logs log)}))
+
+(t/ann tryFullCommitDemand [ts/Cluster ts/Demand -> ts/Cluster])
+(defn tryFullCommitDemand 
+  [{cluster :cluster logs :logs} demand]
+  " reads one demand and alters the state of the cluster if needed "
+  (let [ neededRes  (task/getResources demand) 
+         task (task/getTask demand)
+         available (fullresources/<= neededRes (getResources cluster))
+         log {:demand demand  :success available}
+         newCluster (if available
+                     (do 
+                       (task)
+                       (substractFullResources cluster neededRes))
                      cluster) ]
       {:cluster newCluster :logs (conj logs log)}))
 
@@ -132,6 +146,19 @@
   [iter]
   {:iter iter
    :resources {:cpus 10 :memory 8} 
+   :frameworks [] 
+   :registerCh (async/chan)
+   :demandsCh (async/chan)
+   :finishedCh (async/chan)
+   })
+
+(defn initFullOmegaCluster
+  [iter]
+  {:iter iter
+   :resources {:slave1 {:cpus 10 :memory 8} 
+               :slave2 {:cpus 10 :memory 8} 
+               :slave3 {:cpus 10 :memory 8} 
+               :slave4 {:cpus 10 :memory 8}}
    :frameworks [] 
    :registerCh (async/chan)
    :demandsCh (async/chan)
@@ -161,10 +188,28 @@
                     (notifyFinishedTask cluster demand))))]
      (assoc demand :task t)))
 
+(defn fullwrap
+  [task name cluster res framework]
+  (let [demand {:id name 
+                :resources res 
+                :framework framework}
+        t (fn [] (async/thread 
+                  (do
+                    (task)
+                    (println (str "runned task: " name))
+                    (notifyFinishedTask cluster demand))))]
+     (assoc demand :task t)))
+
 ;; FIXME: Circular reference
 (t/ann wrapWithNotifyOnFinished [ts/Task ts/Cluster -> t/Any])
 (defn wrapWithNotifyOnFinished
   ([task name cluster] (wrap task name cluster 1 1 "fr1"))
   ([task name cluster cpus memory framework] (wrap task name cluster cpus memory framework)))
+  
+
+;; FIXME: Circular reference
+(t/ann fullwrapWithNotifyOnFinished [ts/Task ts/Cluster -> t/Any])
+(defn fullwrapWithNotifyOnFinished
+  ([task name cluster resources framework] (fullwrap task name cluster resources framework)))
   
 

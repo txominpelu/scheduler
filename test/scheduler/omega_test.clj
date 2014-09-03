@@ -21,13 +21,17 @@
              (Thread/sleep 100))))) ;; FIXME: Ugly!!!
 
 (defn createDemand
-  [cluster] 
+  [cluster isFull] 
   (fn [{cpus :cpus memory :memory id :id framework :framework}]
-    (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) id cluster cpus memory framework)))
+    (if isFull
+     (cluster/fullwrapWithNotifyOnFinished (fn [] (println "Run task!")) id cluster {:cpus cpus :memory memory} framework)
+     (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) id cluster cpus memory framework))))
 
 (defn test-iter
-  [cluster [demands expSuccess expFailed expCpus]]
-    (let [ cDemand (createDemand cluster)
+  ([cluster fixtures]
+   (test-iter cluster false fixtures))
+  ([cluster isFull [demands expSuccess expFailed expCpus]]
+    (let [ cDemand (createDemand cluster isFull)
            demands (map cDemand demands)]
           (demandResources cluster demands)
           (let [{newCluster :cluster logs :logs} (cluster/runIter cluster)
@@ -35,14 +39,17 @@
              (is (= (map :id (map :demand success)) expSuccess))
              (is (= (map :id (map :demand failed))  expFailed))
              (is (= expCpus (cluster/getClusterCpus newCluster)))
-            newCluster)))
+            newCluster))))
 
 (defn test-n-iters
   ([fixtures]
     (let [cluster (cluster/initOmegaCluster (omegaIter fifo))]
-      (test-n-iters fixtures cluster)))
-  ([fixtures cluster]
-      (reduce (fn [acc f] (test-iter acc f)) cluster fixtures)))
+      (test-n-iters fixtures cluster false)))
+  ([fixtures isFull]
+    (let [cluster (cluster/initOmegaCluster (omegaIter fifo))]
+      (test-n-iters fixtures cluster isFull)))
+  ([fixtures cluster isFull]
+      (reduce (fn [acc f] (test-iter acc isFull f)) cluster fixtures)))
 
 
 ;; Test that one framework asks for all cpus and then another framework and see that is the first
@@ -68,15 +75,15 @@
 (def totalResources {:cpus 9 :memory 18}) 
 (def d1Data {:id "t1" :cpus 1 :memory 4 :framework "fr1"})
 (def d2Data {:id "t2" :cpus 3 :memory 1 :framework "fr2"})
-(defn dem1 [cluster] ((createDemand cluster) d1Data))
-(defn dem2 [cluster] ((createDemand cluster) d2Data))
+(defn dem1 [cluster] ((createDemand cluster false) d1Data))
+(defn dem2 [cluster] ((createDemand cluster false) d2Data))
 
 (deftest dominantFairness-test
   (testing "when the cluster assign resources with fairness"
     (let [cluster (cluster/withResources (cluster/initOmegaCluster (omegaIter drf)) totalResources)
           demandsFr1 (repeat 5 d1Data)
           demandsFr2 (repeat 5 d2Data)]
-      (test-n-iters [[(concat demandsFr1 demandsFr2) ["t1" "t2" "t1" "t2" "t1"] ["t1" "t1" "t2" "t2" "t2"] 0]] cluster))))
+      (test-n-iters [[(concat demandsFr1 demandsFr2) ["t1" "t2" "t1" "t2" "t1"] ["t1" "t1" "t2" "t2" "t2"] 0]] cluster false))))
 
 
 ;; Test that both ask for half of the resources and they both get them
