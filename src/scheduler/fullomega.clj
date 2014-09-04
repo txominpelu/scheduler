@@ -34,9 +34,8 @@
         resourcesGiven (utils/tuplesToMap (map vector frameworks (repeat resources/emptyResources)))
         demandsMap (utils/tuplesToMap (map (fn [[key val]] [(keyword key) val]) (group-by task/getFramework demands)))
         ]
-    (println "totalResources")
-    (println totalResources)
-    (omega/internalDrf totalResources 
+    (omega/internalDrf 
+         totalResources 
          resources/emptyResources 
          dominantShares 
          resourcesGiven

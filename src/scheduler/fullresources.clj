@@ -34,7 +34,8 @@
   [res1 res2]
   (let [res1 (normalize res1)
         res2 (normalize res2)]
-    (and (for [[k v] res1] (resources/<= (k res1) (k res2))))))
+    ;;(println (str res1 " <= " res2 " == " (every? true? (for [[k v] res1] (resources/<= (k res1) (k res2))))))
+    (every? true? (for [[k v] res1] (resources/<= (k res1) (k res2))))))
 
 
 (t/ann minusResources [ts/FullResources ts/FullResources -> ts/FullResources])

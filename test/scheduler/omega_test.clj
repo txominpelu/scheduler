@@ -2,6 +2,7 @@
   (:require [clojure.test :refer :all]
             [clojure.core.async :as async]
             [scheduler.omega :refer :all]
+            [scheduler.fullomega :as fullomega]
             [scheduler.resources :as resources]
             [scheduler.framework :as framework]
             [scheduler.cluster :as cluster]
@@ -22,10 +23,10 @@
 
 (defn createDemand
   [cluster isFull] 
-  (fn [{cpus :cpus memory :memory id :id framework :framework}]
+  (fn [{res :resources id :id framework :framework}]
     (if isFull
-     (cluster/fullwrapWithNotifyOnFinished (fn [] (println "Run task!")) id cluster {:cpus cpus :memory memory} framework)
-     (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) id cluster cpus memory framework))))
+     (cluster/fullwrapWithNotifyOnFinished (fn [] (println "Run task!")) id cluster res framework)
+     (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) id cluster res framework))))
 
 (defn test-iter
   ([cluster fixtures]
@@ -46,7 +47,8 @@
     (let [cluster (cluster/initOmegaCluster (omegaIter fifo))]
       (test-n-iters fixtures cluster false)))
   ([fixtures isFull]
-    (let [cluster (cluster/initOmegaCluster (omegaIter fifo))]
+    (let [iter (if isFull (fullomega/omegaIter fifo) (omegaIter fifo))
+          cluster (cluster/initOmegaCluster iter)]
       (test-n-iters fixtures cluster isFull)))
   ([fixtures cluster isFull]
       (reduce (fn [acc f] (test-iter acc isFull f)) cluster fixtures)))
@@ -55,26 +57,26 @@
 ;; Test that one framework asks for all cpus and then another framework and see that is the first
 (deftest competeAllCluster-test
   (testing "when two frameworks compete for the whole cluster the first gets it"
-    (let [demand1 {:id "t1" :cpus 10 :memory 8 :framework "fr1"}
-          demand2 {:id "t2" :cpus 1 :memory 8 :framework "fr2"}]
+    (let [demand1 {:id "t1" :resources {:cpus 10 :memory 8} :framework "fr1"}
+          demand2 {:id "t2" :resources {:cpus 1 :memory 8} :framework "fr2"}]
       (test-n-iters [[[demand1 demand2] ["t1"] ["t2"] 0]]))))
 
 (deftest halfEach-test
   (testing "when two frameworks take half of the cluster"
-    (let [demand1 {:id "t1" :cpus 5 :memory 4 :framework "fr1"}
-          demand2 {:id "t2" :cpus 5 :memory 4 :framework "fr2"}]
+    (let [demand1 {:id "t1" :resources {:cpus 5 :memory 4} :framework "fr1"}
+          demand2 {:id "t2" :resources {:cpus 5 :memory 4} :framework "fr2"}]
       (test-n-iters [[[demand1 demand2] ["t1" "t2"] [] 0]]))))
 
 (deftest competeMemory-test
   (testing "when two frameworks compete for memory"
-    (let [demand1 {:id "t1" :cpus 1 :memory 5 :framework "fr1"}
-          demand2 {:id "t2" :cpus 1 :memory 4 :framework "fr2"}]
+    (let [demand1 {:id "t1" :resources {:cpus 1 :memory 5} :framework "fr1"}
+          demand2 {:id "t2" :resources {:cpus 1 :memory 4} :framework "fr2"}]
       (test-n-iters [[[demand1 demand2] ["t1"] ["t2"] 9]]))))
 
 ;; Fairness testso
 (def totalResources {:cpus 9 :memory 18}) 
-(def d1Data {:id "t1" :cpus 1 :memory 4 :framework "fr1"})
-(def d2Data {:id "t2" :cpus 3 :memory 1 :framework "fr2"})
+(def d1Data {:id "t1" :resources {:cpus 1 :memory 4} :framework "fr1"})
+(def d2Data {:id "t2" :resources {:cpus 3 :memory 1} :framework "fr2"})
 (defn dem1 [cluster] ((createDemand cluster false) d1Data))
 (defn dem2 [cluster] ((createDemand cluster false) d2Data))
 

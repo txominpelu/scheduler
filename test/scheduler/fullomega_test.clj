@@ -13,32 +13,32 @@
 ;; Test that one framework asks for all cpus and then another framework and see that is the first
 (deftest competeAllCluster-test
   (testing "when two frameworks compete for the whole cluster the first gets it"
-    (let [demand1 {:id "t1" :cpus 10 :memory 8 :framework "fr1"}
-          demand2 {:id "t2" :cpus 1 :memory 8 :framework "fr2"}]
+    (let [demand1 {:id "t1" :resources {:slave1 {:cpus 10 :memory 8}} :framework "fr1"}
+          demand2 {:id "t2" :resources {:slave1 {:cpus 1 :memory 8}} :framework "fr2"}]
       (omega-test/test-n-iters [[[demand1 demand2] ["t1"] ["t2"] 0]] true))))
 
 (deftest halfEach-test
   (testing "when two frameworks take half of the cluster"
-    (let [demand1 {:id "t1" :cpus 5 :memory 4 :framework "fr1"}
-          demand2 {:id "t2" :cpus 5 :memory 4 :framework "fr2"}]
+    (let [demand1 {:id "t1" :resources {:slave1 {:cpus 5 :memory 4}} :framework "fr1"}
+          demand2 {:id "t2" :resources {:slave1 {:cpus 5 :memory 4}} :framework "fr2"}]
       (omega-test/test-n-iters [[[demand1 demand2] ["t1" "t2"] [] 0]] true))))
 
 (deftest competeMemory-test
   (testing "when two frameworks compete for memory"
-    (let [demand1 {:id "t1" :cpus 1 :memory 5 :framework "fr1"}
-          demand2 {:id "t2" :cpus 1 :memory 4 :framework "fr2"}]
+    (let [demand1 {:id "t1" :resources {:slave1 {:cpus 1 :memory 5}} :framework "fr1"}
+          demand2 {:id "t2" :resources {:slave1 {:cpus 1 :memory 4}} :framework "fr2"}]
       (omega-test/test-n-iters [[[demand1 demand2] ["t1"] ["t2"] 9]] true))))
 
 ;; Fairness testso
 (def totalResources {:slave1 {:cpus 9 :memory 18}}) 
-(def d1Data {:id "t1" :cpus 1 :memory 4 :framework "fr1"})
-(def d2Data {:id "t2" :cpus 3 :memory 1 :framework "fr2"})
+(def d1Data {:id "t1" :resources {:slave1 {:cpus 1 :memory 4}} :framework "fr1"})
+(def d2Data {:id "t2" :resources {:slave1 {:cpus 3 :memory 1}} :framework "fr2"})
 (defn dem1 [cluster] ((omega-test/createDemand cluster true) d1Data))
 (defn dem2 [cluster] ((omega-test/createDemand cluster true) d2Data))
 
 (deftest dominantFairness-test
   (testing "when the cluster assign resources with fairness"
-    (let [cluster (cluster/withResources (cluster/initOmegaCluster (omegaIter drf)) totalResources)
+    (let [cluster (cluster/withResources (cluster/initFullOmegaCluster (omegaIter drf)) totalResources)
           demandsFr1 (repeat 5 d1Data)
           demandsFr2 (repeat 5 d2Data)]
       (omega-test/test-n-iters [[(concat demandsFr1 demandsFr2) ["t1" "t2" "t1" "t2" "t1"] ["t1" "t1" "t2" "t2" "t2"] 0]] cluster true))))

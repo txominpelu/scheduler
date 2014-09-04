@@ -24,6 +24,7 @@
         cluster (cluster/addResources cluster resourcesFreed) ]
         (reduce cluster/tryCommitDemand {:cluster cluster :logs []} (sorting cluster demands)))))
 
+
 (defn shares
   [resGiven totRes]
   (let [shs (map (fn [[fr ui]] [fr (apply max (map (fn [[j uij]] (/ uij (j totRes))) ui))]) resGiven)]
@@ -60,7 +61,7 @@
       (do 
         ;;(println (str "Given to: " i))
         (internalDrf totRes newConsRes newDomShares newResGiven newDemandsMap newSortedDemands))
-        (concat newSortedDemands  demandsLeft)
+        (do (println (concat newSortedDemands  demandsLeft)) (concat newSortedDemands demandsLeft))
       )))
 
 
