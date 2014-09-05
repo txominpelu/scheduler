@@ -58,10 +58,8 @@
         demandsLeft (apply concat (map (fn [[k v]] v) newDemandsMap))
         ]
     (if (resources/<= newConsRes totRes)
-      (do 
-        ;;(println (str "Given to: " i))
-        (internalDrf totRes newConsRes newDomShares newResGiven newDemandsMap newSortedDemands))
-        (do (println (concat newSortedDemands  demandsLeft)) (concat newSortedDemands demandsLeft))
+        (internalDrf totRes newConsRes newDomShares newResGiven newDemandsMap newSortedDemands)
+        (concat newSortedDemands demandsLeft)
       )))
 
 

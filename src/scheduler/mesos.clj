@@ -26,7 +26,6 @@
 (defn offerToAll
   [cluster fr]
   (let [{demands :tasks newFr :framework} (framework/offeredResources (cluster/getResources cluster) fr)
-        ;; FIXME: Treat resources as monoids
         resources (map task/getResources demands)
         resourcesTaken (reduce resources/plusResources resources)
         newCluster (cluster/substractResources cluster resourcesTaken)
