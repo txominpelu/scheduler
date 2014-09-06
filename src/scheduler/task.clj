@@ -11,6 +11,11 @@
   [demand]
   (:resources demand))
 
+(t/ann withResources [ts/Demand -> ts/Demand])
+(defn withResources
+  [demand resources]
+  (assoc demand :resources resources))
+
 (t/ann getCpus [ts/Demand -> t/AnyInteger])
 (defn getCpus
   [demand]

@@ -4,6 +4,7 @@
             [scheduler.omega :refer :all]
             [scheduler.fullomega :as fullomega]
             [scheduler.resources :as resources]
+            [scheduler.fullresources :as fullresources]
             [scheduler.framework :as framework]
             [scheduler.cluster :as cluster]
      )
@@ -31,7 +32,7 @@
 (defn test-iter
   ([cluster fixtures]
    (test-iter cluster false fixtures))
-  ([cluster isFull [demands expSuccess expFailed expCpus]]
+  ([cluster isFull [demands expSuccess expFailed expRes]]
     (let [ cDemand (createDemand cluster isFull)
            demands (map cDemand demands)]
           (demandResources cluster demands)
@@ -39,7 +40,7 @@
                 [success failed] (partition-by :success logs)]
              (is (= (map :id (map :demand success)) expSuccess))
              (is (= (map :id (map :demand failed))  expFailed))
-             (is (= expCpus (cluster/getClusterCpus newCluster)))
+             (is (= (fullresources/normalize expRes) (fullresources/normalize (cluster/getResources newCluster))))
             newCluster))))
 
 (defn test-n-iters
@@ -48,7 +49,7 @@
       (test-n-iters fixtures cluster false)))
   ([fixtures isFull]
     (let [iter (if isFull (fullomega/omegaIter fifo) (omegaIter fifo))
-          cluster (cluster/initOmegaCluster iter)]
+          cluster (if isFull (cluster/initFullOmegaCluster iter) (cluster/initOmegaCluster iter))]
       (test-n-iters fixtures cluster isFull)))
   ([fixtures cluster isFull]
       (reduce (fn [acc f] (test-iter acc isFull f)) cluster fixtures)))

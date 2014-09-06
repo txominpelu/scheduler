@@ -24,6 +24,12 @@
     resources/emptyResources
     (key res)))
 
+(def emptyResources
+  {:slave1 resources/emptyResources
+   :slave2 resources/emptyResources
+   :slave3 resources/emptyResources
+   :slave4 resources/emptyResources })
+
 (t/ann normalize [ts/FullResources -> ts/FullResources])
 (defn normalize
   [res]
@@ -58,4 +64,17 @@
 (defn aggregatedResources
   [res]
   (reduce resources/plusResources (map second res)))
+
+
+(defn canMakeOfferFor
+  [res1 res2]
+  (assert (= (count (keys res2)) 1)) 
+  (let [res1 (normalize res1)]
+    (>  (count (for [[k v] res1 :when (resources/<= (first (vals res2)) v)] k)) 0)))
+
+(defn makeOfferFor
+  [res1 res2]
+  (assert (= (count (keys res2)) 1)) 
+  (let [res1 (normalize res1) ]
+    (utils/tuplesToMap [(first (for [[k v] res1 :when (resources/<= (first (vals res2)) v)] [k (first (vals res2))]))])))
 

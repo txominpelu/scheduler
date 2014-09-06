@@ -138,6 +138,7 @@
                        (task)
                        (substractFullResources cluster neededRes))
                      cluster) ]
+      
       {:cluster newCluster :logs (conj logs log)}))
 
 ;; running
@@ -156,9 +157,9 @@
   [iter]
   {:iter iter
    :resources {:slave1 {:cpus 10 :memory 8} 
-               :slave2 {:cpus 10 :memory 8} 
-               :slave3 {:cpus 10 :memory 8} 
-               :slave4 {:cpus 10 :memory 8}}
+               :slave2 {:cpus 0 :memory 0} 
+               :slave3 {:cpus 0 :memory 0} 
+               :slave4 {:cpus 0 :memory 0}}
    :frameworks [] 
    :registerCh (async/chan)
    :demandsCh (async/chan)

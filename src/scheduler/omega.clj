@@ -49,7 +49,10 @@
   (let [i (first (reduce minShares domShares)) ;;
         di (first (i demandsMap))
         resDi (task/getResources di)
-        newDemandsMap (withDemands demandsMap i (rest (i demandsMap)))
+        newDemandsMap (withDemands demandsMap i (rest (i demandsMap)))]
+  (println consRes)
+  (println resDi)
+  (let [
         newConsRes (resources/plusResources consRes resDi)
         ui (i resGiven)
         newResGiven (withResources resGiven i (resources/plusResources ui resDi))
@@ -60,23 +63,24 @@
     (if (resources/<= newConsRes totRes)
         (internalDrf totRes newConsRes newDomShares newResGiven newDemandsMap newSortedDemands)
         (concat newSortedDemands demandsLeft)
-      )))
+      ))))
 
 
 (defn drf
-  [cluster demands] 
-  (let [totalResources (cluster/getResources cluster)
+  [internalDrf emptyRes]
+  (fn [cluster demands] 
+    (let [totalResources (cluster/getResources cluster)
         frameworks (map (fn [d] (keyword (task/getFramework d))) demands)
         dominantShares (utils/tuplesToMap (map vector frameworks (repeat 0)))
-        resourcesGiven (utils/tuplesToMap (map vector frameworks (repeat resources/emptyResources)))
+        resourcesGiven (utils/tuplesToMap (map vector frameworks (repeat emptyRes)))
         demandsMap (utils/tuplesToMap (map (fn [[key val]] [(keyword key) val]) (group-by task/getFramework demands)))
         ]
     (internalDrf totalResources 
-         resources/emptyResources 
+         emptyRes 
          dominantShares 
          resourcesGiven
          demandsMap
-         [])))
+         []))))
 
 ;; Test1: 
 
