@@ -83,7 +83,7 @@
 
 (deftest dominantFairness-test
   (testing "when the cluster assign resources with fairness"
-    (let [cluster (cluster/withResources (cluster/initOmegaCluster (omegaIter drf)) totalResources)
+    (let [cluster (cluster/withResources (cluster/initOmegaCluster (omegaIter (drf internalDrf resources/emptyResources))) totalResources)
           demandsFr1 (repeat 5 d1Data)
           demandsFr2 (repeat 5 d2Data)]
       (test-n-iters [[(concat demandsFr1 demandsFr2) ["t1" "t2" "t1" "t2" "t1"] ["t1" "t1" "t2" "t2" "t2"] 0]] cluster false))))
@@ -95,7 +95,7 @@
 (deftest resourcesRestored-test
   (testing "resources are restored when a tasks finished"
     (let [cluster (cluster/initOmegaCluster (omegaIter fifo))
-          demand1 (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "t1" cluster 10 8 "fr1") ;; 10 cpus
+          demand1 (cluster/wrapWithNotifyOnFinished (fn [] (println "Run task!")) "t1" cluster {:cpus 10 :memory 8} "fr1") ;; 10 cpus
          ]
          (demandResources cluster [demand1])
          (let [{newCluster :cluster} (cluster/runIter cluster)]
@@ -125,7 +125,7 @@
           d2 (dem2 cluster)
           demandsFr1 (repeat 5 d1)
           demandsFr2 (repeat 5 d2)
-          result (drf cluster (concat demandsFr1 demandsFr2))
+          result ((drf internalDrf resources/emptyResources) cluster (concat demandsFr1 demandsFr2))
          ]
     (is (= (map :id (take 5 result))
            (map :id [d1 d2 d1 d2 d1]))))))
