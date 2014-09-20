@@ -44,28 +44,6 @@
   [demandsMap fr demands]
   (assoc demandsMap fr demands))
 
-(defn internalDrf
-  [totRes consRes domShares resGiven demandsMap sortedDemands]
-  (let [i (first (reduce minShares domShares)) ;;
-        di (first (i demandsMap))
-        resDi (task/getResources di)
-        newDemandsMap (withDemands demandsMap i (rest (i demandsMap)))]
-  (println consRes)
-  (println resDi)
-  (let [
-        newConsRes (resources/plusResources consRes resDi)
-        ui (i resGiven)
-        newResGiven (withResources resGiven i (resources/plusResources ui resDi))
-        newDomShares (shares newResGiven totRes)
-        newSortedDemands (conj sortedDemands di) 
-        demandsLeft (apply concat (map (fn [[k v]] v) newDemandsMap))
-        ]
-    (if (resources/<= newConsRes totRes)
-        (internalDrf totRes newConsRes newDomShares newResGiven newDemandsMap newSortedDemands)
-        (concat newSortedDemands demandsLeft)
-      ))))
-
-
 (defn drf
   [internalDrf emptyRes]
   (fn [cluster demands] 

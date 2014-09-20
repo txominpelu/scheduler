@@ -26,30 +26,6 @@
         cluster (cluster/addFullResources cluster resourcesFreed) ]
         (reduce cluster/tryFullCommitDemand {:cluster cluster :logs []} (sorting cluster demands)))))
 
-;;(defn drf
-;;  [cluster demands] 
-;;  (let [totalResources (fullresources/aggregatedResources (cluster/getResources cluster))
-;;        frameworks (map (fn [d] (keyword (task/getFramework d))) demands)
-;;        dominantShares (utils/tuplesToMap (map vector frameworks (repeat 0)))
-;;        resourcesGiven (utils/tuplesToMap (map vector frameworks (repeat resources/emptyResources)))
-;;        aggDemands (map (fn [d] (task/withResources d (fullresources/aggregatedResources (task/getResources d)))) demands)
-;;        demandsMap (utils/tuplesToMap (map (fn [[key val]] [(keyword key) val]) (group-by task/getFramework aggDemands)))
-;;        ]
-;;    (omega/internalDrf 
-;;         totalResources 
-;;         resources/emptyResources 
-;;         dominantShares 
-;;         resourcesGiven
-;;         demandsMap
-;;         [])))
-
-
-;;(def totRes {:slave1 {:cpus 10 :memory 8}}) 
-;;(def consRes {:slave1 {:cpus 8 :memory 0}}) 
-;;(def dominantShares {:fr1 0 :fr2 0}) 
-;;(def resGiven {:fr1 {:slave1 {:cpus 0 :memory 0}} :fr2 {:slave1 {:cpus 0 :memory 0}}}) 
-;;(def demandsMap {:fr1 [d1 d2 d3] :fr2 [d5 d6 d7]})
-
 ;; Algo:
 ;; find fr with lowest share
 ;; try to find an offer that suits him (still not considering flexibility)
